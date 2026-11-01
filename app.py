@@ -77,7 +77,12 @@ except Exception as e:
     st.error(f"데이터 엔진 로드 중 오류가 발생했습니다: {e}")
     st.stop()
 
-# --- 사이드바: 설정 및 메시지 ---
+# --- 사이드바: 로고 및 설정 ---
+logo_path = BASE_DIR / "logo.png"
+if logo_path.exists():
+    st.sidebar.image(str(logo_path), use_container_width=True)
+    st.sidebar.markdown("---")
+
 st.sidebar.markdown("### 🎛️ 시뮬레이션 조건 설정")
 
 season = st.sidebar.selectbox("계절 선택", ["전체", "봄", "여름", "가을", "겨울"], index=1)
