@@ -271,7 +271,7 @@ with tabs[1]:
         </div>
     """, unsafe_allow_html=True)
 
-st.markdown("---")
+    st.markdown("---")
     st.subheader("☀️ 월별 태양광 발전 비중 vs 정오-저녁 탄소집약도 격차 산점도")
     st.markdown("월별 태양광 발전 비중이 높아질수록 정오(12~14시)와 저녁 피크(19~21시) 간 탄소집약도 격차(%)가 어떻게 변하는지 상관관계를 분석합니다.")
 
@@ -279,7 +279,6 @@ st.markdown("---")
     if gap_path.exists():
         gap_df = pd.read_csv(gap_path)
         
-        # 컬럼명 자동 확인 및 매핑 (에러 방지)
         cols = gap_df.columns.tolist()
         x_col = next((c for c in ['solar_share_noon_pct', 'solar_share', 'solar'] if c in cols), cols[1] if len(cols)>1 else cols[0])
         y_col = next((c for c in ['gap_pct', 'gap', 'diff'] if c in cols), cols[2] if len(cols)>2 else cols[0])
