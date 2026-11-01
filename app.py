@@ -204,13 +204,20 @@ with tabs[2]:
         st.markdown("---")
         st.markdown("### 🎯 시뮬레이션 결과 리포트")
 
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("감축된 탄소량", f"{r['saved_g']:.1f} g", delta=f"{r['saved_rate']*100:.1f}% 감축", delta_color="normal")
-        m2.metric("이동 전 배출량", f"{r['emission_before']:.1f} g")
-        m3.metric("이동 후 배출량", f"{r['emission_after']:.1f} g")
-        m4.metric("아예 안 쓸 때 감축량 (절약)", f"{r['saved_g_noreduce']:.1f} g", help="절약은 이동 효과보다 큽니다!")
+        # KeyError 방지를 위해 .get()을 사용하여 안전하게 값을 가져옵니다.
+        saved_g = r.get('saved_g', r.get('saved', 0))
+        saved_rate = r.get('saved_rate', r.get('rate', 0))
+        emission_before = r.get('emission_before', r.get('before', r.get('original_emission', 0)))
+        emission_after = r.get('emission_after', r.get('after', r.get('shifted_emission', 0)))
+        saved_g_noreduce = r.get('saved_g_noreduce', r.get('noreduce', 0))
 
-        annual_saved_kg = (r['saved_g'] * 365) / 1000
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("감축된 탄소량", f"{saved_g:.1f} g", delta=f"{saved_rate*100:.1f}% 감축", delta_color="normal")
+        m2.metric("이동 전 배출량", f"{emission_before:.1f} g")
+        m3.metric("이동 후 배출량", f"{emission_after:.1f} g")
+        m4.metric("아예 안 쓸 때 감축량 (절약)", f"{saved_g_noreduce:.1f} g", help="절약은 이동 효과보다 큽니다!")
+
+        annual_saved_kg = (saved_g * 365) / 1000
         pine_trees = annual_saved_kg / 6.6
         car_km = annual_saved_kg / 0.192
 
@@ -226,7 +233,6 @@ with tabs[2]:
         st.markdown("#### ✨ 이 시간대에 하세요! (가장 깨끗한 시작 시각 Top 3)")
         best_df = E.best_start(duration=duration, season=sim_season, day_type=sim_day, scenario=scenario)
         st.dataframe(best_df.head(3).round(3), use_container_width=True)
-
 # ==========================================
 # [Tab 4] 정직한 결과 & 한계
 # ==========================================
