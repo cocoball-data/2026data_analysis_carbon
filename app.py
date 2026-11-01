@@ -421,30 +421,69 @@ with tabs[2]:
         st.dataframe(best_df.head(3).round(3), use_container_width=True)
 
 # ==========================================
-# [Tab 4] 정직한 결과 & 한계
+# [Tab 4] 정직한 결과 & 한계 (디자인 & 스토리텔링 대폭 강화)
 # ==========================================
 with tabs[3]:
-    st.subheader("📊 정직한 결과: 분모 3가지 비교 & 한계")
+    st.markdown("### 📊 정직한 결과: 왜 감축 효과가 작아 보일까요?")
     st.markdown(
-        "탄소 배출량 감소율을 계산할 때 어떤 분모(기준)를 쓰느냐에 따라 수치가 달라집니다. "
-        "우리 연구는 3가지 분모를 모두 투명하게 공개하여 과장 없는 정직한 결과를 도출합니다."
+        "탄소 배출량 감소율은 **어떤 기준(분모)을 적용하느냐**에 따라 수치가 극적으로 달라집니다. "
+        "본 연구는 효과를 과장하지 않고, 3가지 기준을 투명하게 비교하여 **수요 이동(Shifting)의 냉정한 한계**를 직시합니다."
     )
 
     denoms = E.denominators(p=0.1, season=season_arg, day_type=day_arg)
-    denom_df = pd.DataFrame([
-        {"분모 기준": "이동분 기준 (Moved Share, p=10%)", "감소율": f"{denoms['moved_rate']*100:.2f}%", "설명": "실제 이동한 전력량 기준 감축 비율"},
-        {"분모 기준": "저녁 총사용량 기준 (Evening Total)", "감소율": f"{denoms['evening_rate']*100:.2f}%", "설명": "저녁 피크 전체 사용량 대비 비율"},
-        {"분모 기준": "일일 총사용량 기준 (실제 마켓)", "감소율": f"{denoms['daily_rate_market']*100:.2f}%", "설명": "하루 총배출량 대비 실제 비율 (약 0.3%)"},
-    ])
-    st.dataframe(denom_df, use_container_width=True)
+    
+    # 3가지 분모 기준을 인포그래픽 카드 형태로 시각화
+    col_d1, col_d2, col_d3 = st.columns(3)
+    
+    with col_d1:
+        st.markdown(f"""
+            <div class="custom-card" style="border-top: 4px solid #2d6a4f; text-align: center;">
+                <div style="font-size: 0.85rem; color: #52b788; font-weight: bold;">기준 ① 이동분 기준 (Moved Share)</div>
+                <div style="font-size: 2rem; font-weight: 800; color: #1b4332; margin: 10px 0;">{denoms['moved_rate']*100:.1f}%</div>
+                <p style="font-size: 0.85rem; color: #666; margin: 0;">실제 이동한 전력량 내에서의 상대적 감축 효과 (체감 효과)</p>
+            </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("### ⚠️ 연구의 한계 및 시사점")
-    st.markdown(
-        "- **상관관계와 인과관계:** 전력 거래 데이터 분석은 통계적 상관관계를 보여주며, 특정 시간대 이동이 즉각적인 발전소 가동 중단으로 이어지는 것은 아닙니다.\n"
-        "- **절약의 우선순위:** 시간 이동 효과(약 9~14%)는 유의미하지만, 전력 사용량 자체를 줄이는 **'절약(Reduction)'**이 언제나 최우선 과제입니다.\n"
-        "- **실시간 변동성:** 본 연구는 과거 연평균 및 계절별 패턴을 기반으로 하므로, 실시간 재생에너지 변동성이나 기상 이변을 완벽히 반영하기에는 한계가 있습니다."
-    )
+    with col_d2:
+        st.markdown(f"""
+            <div class="custom-card" style="border-top: 4px solid #40916c; text-align: center;">
+                <div style="font-size: 0.85rem; color: #52b788; font-weight: bold;">기준 ② 저녁 총사용량 기준</div>
+                <div style="font-size: 2rem; font-weight: 800; color: #1b4332; margin: 10px 0;">{denoms['evening_rate']*100:.1f}%</div>
+                <p style="font-size: 0.85rem; color: #666; margin: 0;">저녁 피크 시간 전체 사용량 대비 기여도</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col_d3:
+        st.markdown(f"""
+            <div class="custom-card" style="border-top: 4px solid #d62728; text-align: center;">
+                <div style="font-size: 0.85rem; color: #e56b6f; font-weight: bold;">기준 ③ 일일 총사용량 기준 (시장 전체)</div>
+                <div style="font-size: 2rem; font-weight: 800; color: #d62728; margin: 10px 0;">{denoms['daily_rate_market']*100:.2f}%</div>
+                <p style="font-size: 0.85rem; color: #666; margin: 0;">하루 국가 전체 총배출량 대비 실제 비율 (냉정한 현실)</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 요약 테이블 추가
+    denom_df = pd.DataFrame([
+        {"분모 기준": "이동분 기준 (Moved Share, p=10%)", "감소율(%)": f"{denoms['moved_rate']*100:.2f}%", "해석 및 의미": "개별 활동 관점에서는 약 9~10%의 유의미한 감축 가능"},
+        {"분모 기준": "저녁 총사용량 기준 (Evening Total)", "감소율(%)": f"{denoms['evening_rate']*100:.2f}%", "해석 및 의미": "피크 타임 전체 부하 중 일부가 이동하는 효과"},
+        {"분모 기준": "일일 총사용량 기준 (실제 시장)", "감소율(%)": f"{denoms['daily_rate_market']*100:.2f}%", "해석 및 의미": "거대 전력망 전체를 기준으로 할 때 개인이 미치는 물리적 영향의 한계"},
+    ])
+    st.dataframe(denom_df, use_container_width=True, hide_index=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### ⚠️ 본 연구가 말하는 진정한 시사점 (한계와 제언)")
+    
+    st.markdown("""
+        <div class="custom-card" style="background-color: #f8f9fa; border-left: 5px solid #1b4332;">
+            <ul style="margin: 0; padding-left: 20px; line-height: 1.6; color: #262730;">
+                <li><b>개인 행동의 한계 (효과의 미비성):</b> 전력망 전체의 거대한 규모에 비추어볼 때, 가전제품 몇 개를 시간대별로 옮기는 '수요 이동(Shifting)'만으로는 국가 단위 탄소 감축에 극적인 변화를 이끌어내기 어렵습니다. (일일 기준 약 0.3%)</li>
+                <li><b>절약(Reduction)의 절대적 우위:</b> 따라서 전기를 깨끗한 시간에 쓰는 것보다, <b>전기 사용량 자체를 줄이는 '절약'이 언제나 최우선 순위</b>여야 합니다.</li>
+                <li><b>그럼에도 이동(Shifting)이 필요한 이유:</b> 향후 재생에너지(태양광·풍력) 비중이 급증할 미래 전력 시장에서는 낮 시간에 발생하는 '전력 과잉 생산(출력 제어 문제)'을 흡수하기 위해 스마트 수요 이동 기술이 필수적인 제도적 장치가 됩니다.</li>
+            </ul>
+        </div>
+    """, unsafe_allow_html=True)
 
 # ==========================================
 # [Tab 5] 데이터 & 방법론
