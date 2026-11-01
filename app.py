@@ -221,39 +221,87 @@ with tabs[0]:
         st.info("전력원별 구성 데이터(fuel_hour_mix.csv)를 찾을 수 없습니다.")
 
 # ==========================================
-# [Tab 2] 연중 히트맵 & 분포
-# ==========================================
-with tabs[1]:
-    st.subheader("🗺️ 월별 × 시간대 탄소집약도 히트맵")
-    st.markdown("1년 365일 동안 월과 시간에 따라 탄소집약도가 어떻게 분포하는지 거시적인 패턴을 조망합니다.")
+    # [Tab 2] 연중 히트맵 & 분포 (디자인 업그레이드된 히스토그램)
+    # ==========================================
+    with tabs[1]:
+        st.subheader("🗺️ 월별 × 시간대 탄소집약도 히트맵")
+        st.markdown("1년 365일 동안 월과 시간에 따라 탄소집약도가 어떻게 분포하는지 거시적인 패턴을 조망합니다.")
 
-    month_hour_path = CLEAN_DIR / "ci_month_hour.csv"
-    if month_hour_path.exists():
-        mh_df = pd.read_csv(month_hour_path)
-        mh_pivot = mh_df.pivot(index="month", columns="hour", values="ci_mid")
-        fig_hm = px.imshow(
-            mh_pivot,
-            labels=dict(x="시각 (Hour)", y="월 (Month)", color="g/kWh"),
-            x=mh_pivot.columns,
-            y=mh_pivot.index,
-            color_continuous_scale="Viridis",
-            title="월별-시간대별 평균 탄소집약도 히트맵"
+        month_hour_path = CLEAN_DIR / "ci_month_hour.csv"
+        if month_hour_path.exists():
+            mh_df = pd.read_csv(month_hour_path)
+            mh_pivot = mh_df.pivot(index="month", columns="hour", values="ci_mid")
+            fig_hm = px.imshow(
+                mh_pivot,
+                labels=dict(x="시각 (Hour)", y="월 (Month)", color="g/kWh"),
+                x=mh_pivot.columns,
+                y=mh_pivot.index,
+                color_continuous_scale="Viridis",
+                title="월별-시간대별 평균 탄소집약도 히트맵"
+            )
+            # 히트맵 배경 및 여백 정돈
+            fig_hm.update_layout(
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=20, r=20, t=50, b=20)
+            )
+            st.plotly_chart(fig_hm, use_container_width=True)
+
+        st.markdown("---")
+        st.subheader("📊 날짜별 이동 감축률 분포 (365일)")
+        st.markdown("동일한 시간 이동(예: 19시 → 12시, 2시간)을 하더라도, 날마다 전력 상황에 따라 감축 효과가 3% ~ 22%로 다르게 나타납니다.")
+
+        dd_s = E.daily_distribution()
+        median_val = dd_s.median()  # 분포의 중앙값 계산
+
+        # 1. 히스토그램 객체 생성
+        fig_hist = px.histogram(
+            x=dd_s, nbins=30,
+            labels={"x": "이동 감축률 (%)", "count": "일수 (Days)"},
+            title="365일 일별 이동 감축률 분포 및 중앙값 분석"
         )
-        st.plotly_chart(fig_hm, use_container_width=True)
+        
+        # 2. 바(Bar) 스타일 정교화 (부드러운 투명도와 테두리선 부여)
+        fig_hist.update_traces(
+            marker_color="#2d6a4f", 
+            marker_line_color="#1b4332", 
+            marker_line_width=1.2,
+            opacity=0.85
+        )
+        
+        # 3. 핵심 포인트인 '중앙값' 수직선(Line)과 라벨 추가로 정보성 및 시각적 완성도 극대화
+        fig_hist.add_vline(
+            x=median_val, 
+            line_dash="dash", 
+            line_color="#d62728", 
+            annotation_text=f"중앙값: {median_val:.1f}%", 
+            annotation_position="top right",
+            annotation_font=dict(size=12, color="#d62728", family="sans-serif")
+        )
 
-    st.markdown("---")
-    st.subheader("📊 날짜별 이동 감축률 분포 (365일)")
-    st.markdown("동일한 시간 이동(예: 19시 → 12시, 2시간)을 하더라도, 날마다 전력 상황에 따라 감축 효과가 3% ~ 22%로 다르게 나타납니다.")
-
-    dd_s = E.daily_distribution()
-    fig_hist = px.histogram(
-        x=dd_s, nbins=30,
-        labels={"x": "이동 감축률 (%)", "count": "일수 (Days)"},
-        title="365일 일별 이동 감축률 분포 (중앙값 약 9.5%)"
-    )
-    fig_hist.update_traces(marker_color="#2d6a4f")
-    fig_hist.update_layout(plot_bgcolor="#ffffff", paper_bgcolor="#ffffff")
-    st.plotly_chart(fig_hist, use_container_width=True)
+        # 4. 레이아웃 미감 극대화 (배경 투명화, 그리드 은은하게 처리)
+        fig_hist.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(family="sans-serif", size=12, color="#262730"),
+            xaxis=dict(
+                gridcolor="#E5E7EB", 
+                zeroline=False, 
+                showline=True, 
+                linewidth=1, 
+                linecolor="#D1D5DB"
+            ),
+            yaxis=dict(
+                gridcolor="#E5E7EB", 
+                zeroline=False, 
+                showline=True, 
+                linewidth=1, 
+                linecolor="#D1D5DB"
+            ),
+            margin=dict(l=40, r=40, t=60, b=40),
+            title_font=dict(size=16, color="#1b4332", family="sans-serif")
+        )
+        st.plotly_chart(fig_hist, use_container_width=True)
 
 # ==========================================
 # [Tab 3] 스마트 이동 시뮬레이터 (핵심 디테일 수정 적용)
