@@ -3,18 +3,76 @@ import pandas as pd
 from pathlib import Path
 import plotly.express as px
 
-# 1. 페이지 설정
+# 1. 페이지 설정 및 기본 레이아웃 지정
 st.set_page_config(
     page_title="스마트 전력 사용 및 탄소 배출량 이동 시뮬레이터",
     page_icon="⚡",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# 2. 경로 설정 (GitHub 환경에 맞춘 data/clean 폴더 경로)
+# 2. 커스텀 CSS (미감 살리기: 고급 에코 그린 톤, 카드 섀도우, 깔끔한 폰트 & 뱃지)
+st.markdown("""
+    <style>
+    /* 메인 배경 및 기본 폰트 */
+    .main {
+        background-color: #F8FAF8;
+    }
+    
+    /* 타이틀 텍스트 스타일 */
+    .title-header {
+        color: #1b4332;
+        font-weight: 800;
+        margin-bottom: 5px;
+    }
+    
+    /* 카드 컨테이너 스타일 */
+    .custom-card {
+        background-color: #ffffff;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e9f5ed;
+        margin-bottom: 20px;
+    }
+    
+    /* 긍정적인 감축 성공 카드 */
+    .card-success {
+        border-left: 6px solid #2d6a4f;
+        background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+    }
+    
+    /* 경고/배출 증가 카드 */
+    .card-warning {
+        border-left: 6px solid #d62728;
+        background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+    }
+    
+    /* 메트릭 강조 숫자 */
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1b4332;
+    }
+    .metric-label {
+        font-size: 0.9rem;
+        color: #52b788;
+        font-weight: 600;
+    }
+    
+    /* 사이드바 스타일링 */
+    [data-testid="stSidebar"] {
+        background-color: #F0F7F2;
+        border-right: 1px solid #d8ebd9;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 3. 경로 설정 (GitHub 환경 호환)
 BASE_DIR = Path(__file__).resolve().parent
 CLEAN_DIR = BASE_DIR / "data" / "clean"
 
-# 3. 엔진 임포트 및 로드
+# 4. 엔진 로드
 try:
     from shift_engine import ShiftEngine
 except ImportError:
@@ -32,8 +90,8 @@ except Exception as e:
     st.error(f"데이터 엔진 로드 중 오류가 발생했습니다: {e}")
     st.stop()
 
-# --- 사이드바: 공통 필터 및 설정 ---
-st.sidebar.header("🎛️ 시뮬레이션 설정")
+# --- 사이드바: 설정 및 안내 ---
+st.sidebar.markdown("### 🎛️ 시뮬레이션 조건 설정")
 
 season = st.sidebar.selectbox("계절 선택", ["전체", "봄", "여름", "가을", "겨울"], index=1)
 day_type = st.sidebar.selectbox("요일 구분", ["전체", "평일", "휴일"], index=1)
@@ -54,16 +112,18 @@ day_arg = None if day_type == "전체" else day_type
 st.sidebar.markdown("---")
 st.sidebar.info(
     "💡 **핵심 메시지**\n\n"
-    "\"같은 전기도 언제 쓰느냐에 따라 달라집니다.\"\n"
-    "평균 9% 감축 (일별 3~22%), 하지만 하루 전체로는 절약이 먼저입니다!"
+    "\"같은 전기도 언제 쓰느냐에 따라 탄소 배출이 달라집니다.\"\n\n"
+    "🌱 **평균 9% 감축** (일별 3~22%)\n"
+    "⚠️ 하지만 시간 이동보다 **전체 절약이 최우선**입니다!"
 )
 
-# --- 메인 타이틀 & 히어로 배너 ---
-st.title("⚡ 스마트 전력 사용 및 탄소 배출량 이동 시뮬레이터")
+# --- 메인 타이틀 & 배너 ---
+st.markdown("<h1 class='title-header'>⚡ 스마트 전력 사용 및 탄소 배출량 이동 시뮬레이터</h1>", unsafe_allow_html=True)
 st.markdown(
     "전력 수요를 깨끗한 시간대로 옮겨 탄소 배출을 줄이는 **수요 이동(Load Shifting)** 효과를 "
     "실제 전력 거래 데이터와 전력원별 구성으로 정밀하게 분석합니다."
 )
+st.markdown("<br>", unsafe_allow_html=True)
 
 # 요약 메트릭 계산
 h_ci = E.hourly_ci(season=season_arg, day_type=day_arg, scenario=scenario)
@@ -71,12 +131,33 @@ annual_mean = h_ci.mean()
 min_hour, min_val = int(h_ci.idxmin()), h_ci.min()
 max_hour, max_val = int(h_ci.idxmax()), h_ci.max()
 
-col1, col2, col3 = st.columns(3)
-col1.metric("선택 조건 평균 탄소집약도", f"{annual_mean:.1f} g/kWh")
-col2.metric(f"가장 깨끗한 시간 ({min_hour}시)", f"{min_val:.1f} g/kWh", delta=f"{min_val - annual_mean:.1f}", delta_color="inverse")
-col3.metric(f"가장 더러운 시간 ({max_hour}시)", f"{max_val:.1f} g/kWh", delta=f"{max_val - annual_mean:.1f}")
+# 대시보드 상단 미감 개선 카드 3종
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.markdown(f"""
+        <div class="custom-card">
+            <div class="metric-label">선택 조건 평균 탄소집약도</div>
+            <div class="metric-value">{annual_mean:.1f} <span style="font-size:1.1rem; font-weight:normal;">g/kWh</span></div>
+        </div>
+    """, unsafe_allow_html=True)
 
-st.markdown("---")
+with c2:
+    st.markdown(f"""
+        <div class="custom-card" style="border-top: 4px solid #2d6a4f;">
+            <div class="metric-label">☀️ 가장 깨끗한 시간 ({min_hour}시)</div>
+            <div class="metric-value" style="color:#2d6a4f;">{min_val:.1f} <span style="font-size:1.1rem; font-weight:normal;">g/kWh</span></div>
+            <span style="color:#2d6a4f; font-weight:bold; font-size:0.85rem;">↓ {abs(min_val - annual_mean):.1f} g 절감</span>
+        </div>
+    """, unsafe_allow_html=True)
+
+with c3:
+    st.markdown(f"""
+        <div class="custom-card" style="border-top: 4px solid #d62728;">
+            <div class="metric-label">🔥 가장 배출이 많은 시간 ({max_hour}시)</div>
+            <div class="metric-value" style="color:#d62728;">{max_val:.1f} <span style="font-size:1.1rem; font-weight:normal;">g/kWh</span></div>
+            <span style="color:#d62728; font-weight:bold; font-size:0.85rem;">↑ {abs(max_val - annual_mean):.1f} g 과다</span>
+        </div>
+    """, unsafe_allow_html=True)
 
 # --- 탭 구성 ---
 tabs = st.tabs([
@@ -88,7 +169,7 @@ tabs = st.tabs([
 ])
 
 # ==========================================
-# [Tab 1] 탄소 곡선 & 발전원 (왜 정오가 깨끗한가?)
+# [Tab 1] 탄소 곡선 & 발전원
 # ==========================================
 with tabs[0]:
     st.subheader("📈 24시간 시간대별 탄소집약도 곡선")
@@ -103,8 +184,13 @@ with tabs[0]:
         markers=True,
         title=f"[{season} / {day_type}] 시간대별 탄소집약도 추이"
     )
-    fig_curve.update_traces(line_color="#2ca02c", line_width=3, marker_size=8)
-    fig_curve.update_layout(xaxis=dict(tickmode='linear', dtick=1))
+    fig_curve.update_traces(line_color="#2d6a4f", line_width=3, marker_size=8)
+    fig_curve.update_layout(
+        plot_bgcolor="#ffffff",
+        paper_bgcolor="#ffffff",
+        xaxis=dict(tickmode='linear', dtick=1, gridcolor="#f0f0f0"),
+        yaxis=dict(gridcolor="#f0f0f0")
+    )
     st.plotly_chart(fig_curve, use_container_width=True)
 
     st.markdown("---")
@@ -124,7 +210,12 @@ with tabs[0]:
             title="시간대별 전력원별 평균 발전량 구성",
             color_discrete_sequence=px.colors.qualitative.Prism
         )
-        fig_mix.update_layout(barmode="stack", xaxis=dict(tickmode='linear', dtick=1))
+        fig_mix.update_layout(
+            barmode="stack",
+            plot_bgcolor="#ffffff",
+            paper_bgcolor="#ffffff",
+            xaxis=dict(tickmode='linear', dtick=1, gridcolor="#f0f0f0")
+        )
         st.plotly_chart(fig_mix, use_container_width=True)
     else:
         st.info("전력원별 구성 데이터(fuel_hour_mix.csv)를 찾을 수 없습니다.")
@@ -160,11 +251,12 @@ with tabs[1]:
         labels={"x": "이동 감축률 (%)", "count": "일수 (Days)"},
         title="365일 일별 이동 감축률 분포 (중앙값 약 9.5%)"
     )
-    fig_hist.update_traces(marker_color="#1f77b4")
+    fig_hist.update_traces(marker_color="#2d6a4f")
+    fig_hist.update_layout(plot_bgcolor="#ffffff", paper_bgcolor="#ffffff")
     st.plotly_chart(fig_hist, use_container_width=True)
 
 # ==========================================
-# [Tab 3] 스마트 이동 시뮬레이터 (핵심 인터랙티브)
+# [Tab 3] 스마트 이동 시뮬레이터 (핵심 디테일 수정 적용)
 # ==========================================
 with tabs[2]:
     st.subheader("⚡ 스마트 전력 이동 시뮬레이터")
@@ -183,9 +275,11 @@ with tabs[2]:
             preset_choice = st.selectbox("가전제품 선택", p_df["category"].tolist())
             row_p = p_df[p_df["category"] == preset_choice].iloc[0]
             preset_name = row_p["category"]
+            
+            # [검증 가이드 반영] 414.9 g/kWh는 한국 전력망 평균 탄소집약도 환산 기준입니다.
             default_kwh = row_p["co2_median"] / 414.9
             kwh = st.slider("전력량 (kWh) [상대 추정]", 0.1, 10.0, float(round(default_kwh, 2)), 0.1)
-            st.caption(f"📌 선택한 품목 '{preset_name}' 표준 배출량 중앙값: {row_p['co2_median']:.1f} g (환산 전력량: {kwh:.2f} kWh)")
+            st.caption(f"📌 선택 품목: **{preset_name}** | 표준 1회 배출량 기준: {row_p['co2_median']:.1f} g (한국 전력망 평균 414.9g/kWh 기준 약 {kwh:.2f} kWh 환산)")
         else:
             kwh = st.number_input("전력량 (kWh)", min_value=0.1, max_value=100.0, value=1.5, step=0.1)
 
@@ -197,31 +291,12 @@ with tabs[2]:
         sim_season = st.selectbox("시뮬레이션 계절", ["봄", "여름", "가을", "겨울"], index=0)
         sim_day = st.selectbox("시뮬레이션 요일 구분", ["평일", "휴일"], index=0)
 
-   if st.button("🚀 이동 효과 시뮬레이션 실행", type="primary"):
+    if st.button("🚀 이동 효과 시뮬레이션 실행", type="primary"):
         r = E.shift(kwh=kwh, from_start=from_time, to_start=to_time, duration=duration, season=sim_season, day_type=sim_day, scenario=scenario)
         band = E.shift_band(kwh=kwh, from_start=from_time, to_start=to_time, duration=duration, season=sim_season, day_type=sim_day)
 
-        st.markdown("---")
-        
-        # 커스텀 CSS를 활용한 결과 카드 디자인 적용
-        st.markdown("""
-            <style>
-            .result-card {
-                padding: 20px;
-                border-radius: 10px;
-                background-color: #f0f4f1;
-                border-left: 5px solid #2ca02c;
-                margin-bottom: 20px;
-            }
-            .warning-card {
-                padding: 20px;
-                border-radius: 10px;
-                background-color: #fdf2f2;
-                border-left: 5px solid #d62728;
-                margin-bottom: 20px;
-            }
-            </style>
-        """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("### 🎯 시뮬레이션 결과 리포트")
 
         saved_g = r.get('saved_g', 0)
         saved_rate = r.get('saved_rate', 0)
@@ -229,39 +304,49 @@ with tabs[2]:
         emission_after = r.get('emission_after', 0)
         saved_g_noreduce = r.get('saved_g_noreduce', 0)
 
-        st.markdown("### 🎯 시뮬레이션 결과 리포트")
-
-        # 탄소 감축 여부에 따른 동적 메시지 및 카드 분기
+        # [어색함 보완] 마이너스일 때 '감소' 표현을 '증가' 표현으로 동적 변경
         if saved_g >= 0:
             st.markdown(f"""
-                <div class="result-card">
-                    <h4 style="color: #2ca02c; margin: 0;">🌱 성공적인 스마트 이동입니다!</h4>
-                    <p style="margin: 5px 0 0 0;">이동 전보다 <b>{saved_g:.1f} g</b>의 탄소 배출량을 줄였습니다. (효율: <b>{saved_rate*100:.1f}% 감축</b>)</p>
+                <div class="custom-card card-success">
+                    <h3 style="color: #2d6a4f; margin:0;">🌱 친환경 스마트 이동 성공!</h3>
+                    <p style="margin-top:8px; font-size: 1.05rem; color:#262730;">
+                        <b>{from_time}시</b>에서 <b>{to_time}시</b>로 이동하여 <b>{saved_g:.1f} g</b>의 탄소 배출을 줄였습니다. 
+                        (전력 탄소 집약도 <b>{saved_rate*100:.1f}% 감축</b> 효과)
+                    </p>
                 </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
-                <div class="warning-card">
-                    <h4 style="color: #d62728; margin: 0;">⚠️ 주의: 오히려 탄소 배출량이 증가합니다!</h4>
-                    <p style="margin: 5px 0 0 0;">이 시간대로 옮기면 탄소 배출량이 <b>{abs(saved_g):.1f} g 증가</b>합니다. 이 시간대는 전력 집약도가 높으므로 피해야 합니다.</p>
+                <div class="custom-card card-warning">
+                    <h3 style="color: #d62728; margin:0;">⚠️ 주의: 탄소 배출량이 오히려 증가합니다!</h3>
+                    <p style="margin-top:8px; font-size: 1.05rem; color:#262730;">
+                        <b>{from_time}시</b>보다 <b>{to_time}시</b>의 전력 집약도가 더 높습니다. 
+                        이동 시 탄소 배출량이 <b>{abs(saved_g):.1f} g 증가 (+{abs(saved_rate)*100:.1f}%)</b>하므로 이 시간대는 피하는 것이 좋습니다.
+                    </p>
                 </div>
             """, unsafe_allow_html=True)
 
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("변동 탄소량", f"{abs(saved_g):.1f} g", delta=f"{saved_rate*100:.1f}% {'감축' if saved_g >= 0 else '증가'}", delta_color="normal" if saved_g >= 0 else "inverse")
+        m1.metric(
+            "변동 탄소량", 
+            f"{abs(saved_g):.1f} g", 
+            delta=f"{saved_rate*100:.1f}% {'감축' if saved_g >= 0 else '증가'}", 
+            delta_color="normal" if saved_g >= 0 else "inverse"
+        )
         m2.metric("이동 전 배출량", f"{emission_before:.1f} g")
         m3.metric("이동 후 배출량", f"{emission_after:.1f} g")
-        m4.metric("아예 안 쓸 때 (절약)", f"{saved_g_noreduce:.1f} g", help="절약은 이동 효과보다 항상 더 강력합니다!")
+        m4.metric("아예 안 쓸 때 (절약)", f"{saved_g_noreduce:.1f} g", help="절약(Reduction)은 언제나 이동(Shifting)보다 강력합니다.")
 
-        if saved_g >= 0:
+        if saved_g > 0:
             annual_saved_kg = (saved_g * 365) / 1000
             pine_trees = annual_saved_kg / 6.6
             car_km = annual_saved_kg / 0.192
 
             st.info(
-                f"🌿 **일상 속 환산 효과**\n\n"
-                f"- 만약 이 행동을 **매일** 실천한다면 연간 **{annual_saved_kg:.1f} kg**의 CO₂를 줄일 수 있습니다.\n"
-                f"- 이는 **소나무 약 {pine_trees:.1f}그루**가 1년 동안 흡수하는 양이거나, **내연기관차 약 {car_km:.1f} km** 주행을 줄인 효과와 같습니다."
+                f"🌿 **일상 속 환산 효과 (매일 실천 시)**\n\n"
+                f"- 연간 **{annual_saved_kg:.1f} kg**의 CO₂ 절감\n"
+                f"- **소나무 약 {pine_trees:.1f}그루**가 1년 동안 흡수하는 탄소량\n"
+                f"- **내연기관차 약 {car_km:.1f} km** 주행 시 발생하는 탄소 절감 효과"
             )
 
         st.markdown("#### 🔬 계수 세트별 비교 (불확실성 분석)")
@@ -270,6 +355,7 @@ with tabs[2]:
         st.markdown("#### ✨ 이 시간대에 하세요! (가장 깨끗한 시작 시각 Top 3)")
         best_df = E.best_start(duration=duration, season=sim_season, day_type=sim_day, scenario=scenario)
         st.dataframe(best_df.head(3).round(3), use_container_width=True)
+
 # ==========================================
 # [Tab 4] 정직한 결과 & 한계
 # ==========================================
