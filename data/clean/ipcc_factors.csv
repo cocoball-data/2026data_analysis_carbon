@@ -1,0 +1,18 @@
+﻿tech,direct_min,direct_med,direct_max,life_min,life_med,life_max
+Coal—PC,670.0,760.0,870.0,740.0,820.0,910.0
+Gas—Combined Cycle,350.0,370.0,490.0,410.0,490.0,650.0
+Biomass—cofiring,,,,620.0,740.0,890.0
+Biomass—dedicated,,,,130.0,230.0,420.0
+Geothermal,0.0,0.0,0.0,6.0,38.0,79.0
+Hydropower,0.0,0.0,0.0,1.0,24.0,2200.0
+Nuclear,0.0,0.0,0.0,3.7,12.0,110.0
+Concentrated Solar Power,0.0,0.0,0.0,8.8,27.0,63.0
+Solar PV—rooftop,0.0,0.0,0.0,26.0,41.0,60.0
+Solar PV—utility,0.0,0.0,0.0,18.0,48.0,180.0
+Wind onshore,0.0,0.0,0.0,7.0,11.0,56.0
+Wind offshore,0.0,0.0,0.0,8.0,12.0,35.0
+CCS—Coal—Oxyfuel,14.0,76.0,110.0,100.0,160.0,200.0
+CCS—Coal—PC,95.0,120.0,140.0,190.0,220.0,250.0
+CCS—Coal—IGCC,100.0,120.0,150.0,170.0,200.0,230.0
+CCS—Gas—Combined Cycle,30.0,57.0,98.0,94.0,170.0,340.0
+Ocean,0.0,0.0,0.0,5.6,17.0,28.0
