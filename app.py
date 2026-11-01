@@ -46,6 +46,7 @@ st.markdown("""
         margin: 15px 0;
         font-size: 0.95rem;
         color: #1b4332;
+        line-height: 1.6;
     }
     .metric-value {
         font-size: 1.8rem;
@@ -114,8 +115,9 @@ st.sidebar.markdown("---")
 st.sidebar.markdown(
     "💡 **WHENWHATWATT 브리핑**\n\n"
     "\"전기는 언제 쓰느냐에 따라 탄소 배출량이 달라집니다.\"\n\n"
-    "🌱 **핵심 목표**: 일상 속 수요 이동을 통한 친환경 전력망 기여도 분석\n\n"
-    "🏫 **공동 연구**: 가정·학교 단위의 마이크로 스케일 실천 가치 발굴"
+    "🌱 **현재 적용 필터**\n"
+    f"- 계절: **{season}** | 요일: **{day_type}**\n"
+    f"- 시나리오: **{scenario.upper()}**"
 )
 
 # --- 메인 타이틀 & 배너 ---
@@ -138,7 +140,7 @@ c1, c2, c3 = st.columns(3)
 with c1:
     st.markdown(f"""
         <div class="custom-card">
-            <div class="metric-label">선택 조건 평균 탄소집약도</div>
+            <div class="metric-label">현재 조건 평균 탄소집약도</div>
             <div class="metric-value">{annual_mean:.1f} <span style="font-size:1.1rem; font-weight:normal;">g/kWh</span></div>
         </div>
     """, unsafe_allow_html=True)
@@ -148,7 +150,7 @@ with c2:
         <div class="custom-card" style="border-top: 4px solid #2d6a4f;">
             <div class="metric-label">☀️ 가장 깨끗한 시간 ({min_hour}시)</div>
             <div class="metric-value" style="color:#2d6a4f;">{min_val:.1f} <span style="font-size:1.1rem; font-weight:normal;">g/kWh</span></div>
-            <span style="color:#2d6a4f; font-weight:bold; font-size:0.85rem;">↓ 연평균 대비 {abs(min_val - annual_mean):.1f} g 절감</span>
+            <span style="color:#2d6a4f; font-weight:bold; font-size:0.85rem;">↓ 평균 대비 {abs(min_val - annual_mean):.1f} g 절감</span>
         </div>
     """, unsafe_allow_html=True)
 
@@ -157,7 +159,7 @@ with c3:
         <div class="custom-card" style="border-top: 4px solid #d62728;">
             <div class="metric-label">🔥 가장 배출이 많은 시간 ({max_hour}시)</div>
             <div class="metric-value" style="color:#d62728;">{max_val:.1f} <span style="font-size:1.1rem; font-weight:normal;">g/kWh</span></div>
-            <span style="color:#d62728; font-weight:bold; font-size:0.85rem;">↑ 연평균 대비 {abs(max_val - annual_mean):.1f} g 과다</span>
+            <span style="color:#d62728; font-weight:bold; font-size:0.85rem;">↑ 평균 대비 {abs(max_val - annual_mean):.1f} g 과다</span>
         </div>
     """, unsafe_allow_html=True)
 
@@ -175,7 +177,7 @@ tabs = st.tabs([
 # ==========================================
 with tabs[0]:
     st.subheader("📈 24시간 시간대별 탄소집약도 곡선")
-    st.markdown("하루 중 시간에 따라 전력 시스템의 탄소집약도가 어떻게 변하는지 추이와 패턴을 분석합니다.")
+    st.markdown(f"현재 선택하신 **[{season} / {day_type}]** 조건에서의 24시간 동안 전력 시스템 탄소집약도 변화 추이입니다.")
 
     hours = list(range(24))
     ci_values = [h_ci.get(h, annual_mean) for h in hours]
@@ -195,16 +197,18 @@ with tabs[0]:
     )
     st.plotly_chart(fig_curve, use_container_width=True)
 
-    # 데이터 분석 해설 주석 추가
-    st.markdown("""
+    # 사이드바 선택에 따라 실시간으로 반응하는 다이나믹 주석 박스
+    st.markdown(f"""
         <div class="insight-box">
-            <b>💡 데이터 인사이트 주석:</b> 정오(12~14시) 무렵 곡선이 가장 낮게 떨어지는 이유는 태양광 발전량이 급증하여 상대적으로 탄소 배출이 적은 전력원 구성 비율이 높아지기 때문입니다. 반면 저녁 피크 타임에는 화력 발전 비중이 늘어나 배출계수가 급등합니다.
+            <b>🔍 [실시간 분석 가이드] 현재 선택 조건 해석</b><br>
+            • 현재 설정하신 <b>{season} ({day_type})</b> 조건에서 가장 탄소 배출이 적은 골든타임은 <b>{min_hour}시</b>(약 {min_val:.1f} g/kWh)입니다.<br>
+            • 반면, <b>{max_hour}시</b>는 전력 수요 집중 및 화력 발전 가동으로 인해 탄소집약도가 <b>{max_val:.1f} g/kWh</b>까지 치솟으므로 이 시간을 피하는 것이 핵심입니다.
         </div>
     """, unsafe_allow_html=True)
 
     st.markdown("---")
     st.subheader("☀️ 전력원별 발전량 구성 분석")
-    st.markdown("시간대에 따른 발전원(태양광, 원자력, LNG, 석탄 등)의 구성 변화를 살펴봅니다.")
+    st.markdown("시간대에 따른 발전원(태양광, 원자력, LNG, 석탄 등)의 구성 변화를 통해 곡선 등락의 원인을 증명합니다.")
 
     mix_path = CLEAN_DIR / "fuel_hour_mix.csv"
     if mix_path.exists():
@@ -216,7 +220,7 @@ with tabs[0]:
         fig_mix = px.bar(
             sub_mix, x="hour", y="mwh_mean", color="group",
             labels={"hour": "시각 (Hour)", "mwh_mean": "평균 발전량 (MW)", "group": "전력원"},
-            title="시간대별 전력원별 평균 발전량 구성",
+            title=f"[{season} / {day_type}] 시간대별 전력원별 평균 발전량 구성",
             color_discrete_sequence=px.colors.qualitative.Prism
         )
         fig_mix.update_layout(
@@ -226,6 +230,12 @@ with tabs[0]:
             xaxis=dict(tickmode='linear', dtick=1, gridcolor="#f0f0f0")
         )
         st.plotly_chart(fig_mix, use_container_width=True)
+        
+        st.markdown("""
+            <div class="insight-box">
+                <b>💡 발전원 분석 해설:</b> 정오 무렵 막대한 태양광 발전량이 공급되면서 기저/화력 발가가 대체되고, 이것이 곧바로 탄소집약도를 낮추는 직접적인 원동력이 됩니다.
+            </div>
+        """, unsafe_allow_html=True)
     else:
         st.info("전력원별 구성 데이터(fuel_hour_mix.csv)를 찾을 수 없습니다.")
 
@@ -255,9 +265,15 @@ with tabs[1]:
         )
         st.plotly_chart(fig_hm, use_container_width=True)
 
+    st.markdown("""
+        <div class="insight-box">
+            <b>🔍 히트맵 읽는 법:</b> 색상이 어두울수록(보라색) 탄소 배출이 적고, 밝을수록(노란색/초록빛) 배출이 많음을 뜻합니다. 봄·가을철 낮 시간대에 뚜렷하게 어두워지는 구역이 바로 우리가 노려야 할 '클린 타임'입니다.
+        </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("---")
     st.subheader("📊 날짜별 이동 감축률 분포 (365일)")
-    st.markdown("동일한 시간 이동(예: 19시 → 12시, 2시간)을 하더라도, 날마다 전력 상황에 따라 감축 효과가 다르게 나타납니다.")
+    st.markdown("동일한 시간 이동(예: 저녁 7시 → 낮 12시)을 하더라도, 연중 날마다 전력 상황에 따라 감축 효과가 다르게 나타납니다.")
 
     dd_s = E.daily_distribution()
     median_val = dd_s.median()
@@ -292,9 +308,9 @@ with tabs[1]:
     )
     st.plotly_chart(fig_hist, use_container_width=True)
 
-    st.markdown("""
+    st.markdown(f"""
         <div class="insight-box">
-            <b>💡 통계 분석 주석:</b> 히스토그램의 빨간색 수직선은 365일 전체 데이터의 <b>중앙값(Median)</b>을 나타냅니다. 평균값에 비해 이상치의 영향을 적게 받아 전반적인 감축 포텐셜을 평가하는 데 가장 신뢰할 수 있는 지표입니다.
+            <b>💡 통계 분석 가이드:</b> 365일 전수 조사 결과, 수요 이동을 통한 감축률의 <b>중앙값은 {median_val:.1f}%</b>로 나타났습니다. 하루하루 변동이 심한 전력 시장에서 이 중앙값은 우리 시뮬레이션의 객관적 신뢰성을 뒷받침하는 핵심 지표입니다.
         </div>
     """, unsafe_allow_html=True)
 
@@ -405,9 +421,11 @@ with tabs[2]:
             )
 
         st.markdown("#### 🔬 계수 세트별 비교 (불확실성 분석)")
+        st.markdown("<p style='font-size:0.9rem; color:#555;'>IPCC 기준 시나리오(중앙값, 최소값, 최대값, 직접배출)에 따른 시뮬레이션 결과 오차 범위를 비교합니다.</p>", unsafe_allow_html=True)
         st.dataframe(band.round(3), use_container_width=True)
 
         st.markdown("#### ✨ 이 시간대에 하세요! (가장 깨끗한 시작 시각 Top 3)")
+        st.markdown(f"<p style='font-size:0.9rem; color:#555;'>선택하신 [{sim_season} / {sim_day}] 조건에서 {duration}시간 동안 가전/활동을 진행할 때 가장 배출이 적은 최적의 시작 시각들입니다.</p>", unsafe_allow_html=True)
         best_df = E.best_start(duration=duration, season=sim_season, day_type=sim_day, scenario=scenario)
         st.dataframe(best_df.head(3).round(3), use_container_width=True)
 
