@@ -313,7 +313,7 @@ with tabs[1]:
             <b>💡 통계 분석 가이드:</b> 365일 전수 조사 결과, 수요 이동을 통한 감축률의 <b>중앙값은 {median_val:.1f}%</b>로 나타났습니다. 하루하루 변동이 심한 전력 시장에서 이 중앙값은 우리 시뮬레이션의 객관적 신뢰성을 뒷받침하는 핵심 지표입니다.
         </div>
     """, unsafe_allow_html=True)
-    st.markdown("---")
+   st.markdown("---")
     st.subheader("☀️ 월별 태양광 발전 비중 vs 정오-저녁 탄소집약도 격차 산점도")
     st.markdown("월별 태양광 발전 비중이 높아질수록 정오(12~14시)와 저녁 피크(19~21시) 간 탄소집약도 격차(%)가 어떻게 변하는지 상관관계를 분석합니다.")
 
@@ -321,7 +321,7 @@ with tabs[1]:
     if gap_path.exists():
         gap_df = pd.read_csv(gap_path)
         
-    # 산점도 그래프 생성
+        # 산점도 그래프 생성 (trendline 제거로 의존성 에러 방지)
         fig_scatter = px.scatter(
             gap_df,
             x="solar_share_noon_pct",
@@ -332,19 +332,18 @@ with tabs[1]:
                 "gap_pct": "정오-저녁 탄소집약도 격차 (%)",
                 "month": "월"
             },
-            title="월별 태양광 비중과 탄소집약도 절감 격차 간의 상관관계",
-            trendline="ols", # 선형 회귀 추세선 추가
-            trendline_color_override="#d62728"
+            title="월별 태양광 비중과 탄소집약도 절감 격차 간의 상관관계"
         )
         fig_scatter.update_traces(
-            marker=dict(size=12, color="#2d6a4f", line=dict(width=1, color="#1b4332")),
-            textposition="top center"
+            marker=dict(size=14, color="#2d6a4f", line=dict(width=1, color="#1b4332")),
+            textposition="top center",
+            textfont=dict(size=12, color="#1b4332", family="sans-serif")
         )
         fig_scatter.update_layout(
             plot_bgcolor="#ffffff",
             paper_bgcolor="#ffffff",
-            xaxis=dict(gridcolor="#f0f0f0"),
-            yaxis=dict(gridcolor="#f0f0f0")
+            xaxis=dict(gridcolor="#f0f0f0", zeroline=False),
+            yaxis=dict(gridcolor="#f0f0f0", zeroline=False)
         )
         st.plotly_chart(fig_scatter, use_container_width=True)
 
