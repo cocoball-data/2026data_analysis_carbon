@@ -272,7 +272,7 @@ with tabs[1]:
     """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.subheader("☀️ 월별 태양광 발전 비중 vs 정오-저녁 탄소집약도 격차 산점도")
+    st.subheader("+☀️+ 월별 태양광 발전 비중 vs 정오-저녁 탄소집약도 격차 산점도")
     st.markdown("월별 태양광 발전 비중이 높아질수록 정오(12~14시)와 저녁 피크(19~21시) 간 탄소집약도 격차(%)가 어떻게 변하는지 상관관계를 분석합니다.")
 
     gap_path = CLEAN_DIR / "ci_month_gap.csv"
