@@ -5,13 +5,13 @@ import plotly.express as px
 
 # 1. 페이지 설정 및 기본 레이아웃 지정
 st.set_page_config(
-    page_title="스마트 전력 사용 및 탄소 배출량 이동 시뮬레이터",
+    page_title="CARBON SHIFT | WHENWHATWATT",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# 2. 커스텀 CSS (고급 에코 그린 톤, 카드 섀도우, 메트릭 뱃지)
+# 2. 커스텀 CSS (에코 그린 톤, 카드 섀도우, 가독성 강화)
 st.markdown("""
     <style>
     .main {
@@ -38,6 +38,15 @@ st.markdown("""
         border-left: 6px solid #d62728;
         background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
     }
+    .insight-box {
+        background-color: #f0f7f2;
+        border-left: 4px solid #52b788;
+        padding: 16px;
+        border-radius: 0 12px 12px 0;
+        margin: 15px 0;
+        font-size: 0.95rem;
+        color: #1b4332;
+    }
     .metric-value {
         font-size: 1.8rem;
         font-weight: 700;
@@ -55,7 +64,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. 경로 설정 (GitHub 환경 호환)
+# 3. 경로 설정
 BASE_DIR = Path(__file__).resolve().parent
 CLEAN_DIR = BASE_DIR / "data" / "clean"
 
@@ -102,18 +111,19 @@ season_arg = None if season == "전체" else season
 day_arg = None if day_type == "전체" else day_type
 
 st.sidebar.markdown("---")
-st.sidebar.info(
-    "💡 **핵심 메시지**\n\n"
-    "\"같은 전기도 언제 쓰느냐에 따라 탄소 배출이 달라집니다.\"\n\n"
-    "🌱 **평균 9% 감축** (일별 3~22%)\n"
-    "🏫 **교실과 가정에서의 작은 습관 변화**가 친환경 전력망을 만드는 첫걸음입니다!"
+st.sidebar.markdown(
+    "💡 **WHENWHATWATT 브리핑**\n\n"
+    "\"전기는 언제 쓰느냐에 따라 탄소 배출량이 달라집니다.\"\n\n"
+    "🌱 **핵심 목표**: 일상 속 수요 이동을 통한 친환경 전력망 기여도 분석\n\n"
+    "🏫 **공동 연구**: 가정·학교 단위의 마이크로 스케일 실천 가치 발굴"
 )
 
 # --- 메인 타이틀 & 배너 ---
-st.markdown("<h1 class='title-header'>⚡ 스마트 전력 사용 및 탄소 배출량 이동 시뮬레이터</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='title-header'>⚡ CARBON SHIFT</h1>", unsafe_allow_html=True)
+st.markdown("<p style='font-size: 1.1rem; color: #52b788; font-weight: 600;'>WHENWHATWATT | 2026 Data Research and Analysis</p>", unsafe_allow_html=True)
 st.markdown(
     "전력 수요를 깨끗한 시간대로 옮겨 탄소 배출을 줄이는 **수요 이동(Load Shifting)** 효과를 "
-    "실제 전력 거래 데이터와 전력원별 구성으로 정밀하게 분석합니다."
+    "실제 전력 거래 데이터와 발전원별 구성으로 정밀하게 분석하는 인터랙티브 대시보드입니다."
 )
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -138,7 +148,7 @@ with c2:
         <div class="custom-card" style="border-top: 4px solid #2d6a4f;">
             <div class="metric-label">☀️ 가장 깨끗한 시간 ({min_hour}시)</div>
             <div class="metric-value" style="color:#2d6a4f;">{min_val:.1f} <span style="font-size:1.1rem; font-weight:normal;">g/kWh</span></div>
-            <span style="color:#2d6a4f; font-weight:bold; font-size:0.85rem;">↓ {abs(min_val - annual_mean):.1f} g 절감</span>
+            <span style="color:#2d6a4f; font-weight:bold; font-size:0.85rem;">↓ 연평균 대비 {abs(min_val - annual_mean):.1f} g 절감</span>
         </div>
     """, unsafe_allow_html=True)
 
@@ -147,7 +157,7 @@ with c3:
         <div class="custom-card" style="border-top: 4px solid #d62728;">
             <div class="metric-label">🔥 가장 배출이 많은 시간 ({max_hour}시)</div>
             <div class="metric-value" style="color:#d62728;">{max_val:.1f} <span style="font-size:1.1rem; font-weight:normal;">g/kWh</span></div>
-            <span style="color:#d62728; font-weight:bold; font-size:0.85rem;">↑ {abs(max_val - annual_mean):.1f} g 과다</span>
+            <span style="color:#d62728; font-weight:bold; font-size:0.85rem;">↑ 연평균 대비 {abs(max_val - annual_mean):.1f} g 과다</span>
         </div>
     """, unsafe_allow_html=True)
 
@@ -165,7 +175,7 @@ tabs = st.tabs([
 # ==========================================
 with tabs[0]:
     st.subheader("📈 24시간 시간대별 탄소집약도 곡선")
-    st.markdown("하루 중 시간에 따라 전력 시스템의 탄소집약도가 어떻게 변하는지 확인합니다. (정오 무렵 최저, 저녁 피크 시각 최고)")
+    st.markdown("하루 중 시간에 따라 전력 시스템의 탄소집약도가 어떻게 변하는지 추이와 패턴을 분석합니다.")
 
     hours = list(range(24))
     ci_values = [h_ci.get(h, annual_mean) for h in hours]
@@ -185,9 +195,16 @@ with tabs[0]:
     )
     st.plotly_chart(fig_curve, use_container_width=True)
 
+    # 데이터 분석 해설 주석 추가
+    st.markdown("""
+        <div class="insight-box">
+            <b>💡 데이터 인사이트 주석:</b> 정오(12~14시) 무렵 곡선이 가장 낮게 떨어지는 이유는 태양광 발전량이 급증하여 상대적으로 탄소 배출이 적은 전력원 구성 비율이 높아지기 때문입니다. 반면 저녁 피크 타임에는 화력 발전 비중이 늘어나 배출계수가 급등합니다.
+        </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("---")
-    st.subheader("☀️ 왜 정오가 가장 깨끗할까요? (전력원별 구성 분석)")
-    st.markdown("태양광 발전 비중이 급증하는 정오(12~14시)에는 탄소 배출이 많은 LNG 및 석탄 발전 비중이 상대적으로 감소합니다.")
+    st.subheader("☀️ 전력원별 발전량 구성 분석")
+    st.markdown("시간대에 따른 발전원(태양광, 원자력, LNG, 석탄 등)의 구성 변화를 살펴봅니다.")
 
     mix_path = CLEAN_DIR / "fuel_hour_mix.csv"
     if mix_path.exists():
@@ -213,7 +230,7 @@ with tabs[0]:
         st.info("전력원별 구성 데이터(fuel_hour_mix.csv)를 찾을 수 없습니다.")
 
 # ==========================================
-# [Tab 2] 연중 히트맵 & 분포 (디자인 업그레이드)
+# [Tab 2] 연중 히트맵 & 분포
 # ==========================================
 with tabs[1]:
     st.subheader("🗺️ 월별 × 시간대 탄소집약도 히트맵")
@@ -240,7 +257,7 @@ with tabs[1]:
 
     st.markdown("---")
     st.subheader("📊 날짜별 이동 감축률 분포 (365일)")
-    st.markdown("동일한 시간 이동(예: 19시 → 12시, 2시간)을 하더라도, 날마다 전력 상황에 따라 감축 효과가 3% ~ 22%로 다르게 나타납니다.")
+    st.markdown("동일한 시간 이동(예: 19시 → 12시, 2시간)을 하더라도, 날마다 전력 상황에 따라 감축 효과가 다르게 나타납니다.")
 
     dd_s = E.daily_distribution()
     median_val = dd_s.median()
@@ -275,12 +292,18 @@ with tabs[1]:
     )
     st.plotly_chart(fig_hist, use_container_width=True)
 
+    st.markdown("""
+        <div class="insight-box">
+            <b>💡 통계 분석 주석:</b> 히스토그램의 빨간색 수직선은 365일 전체 데이터의 <b>중앙값(Median)</b>을 나타냅니다. 평균값에 비해 이상치의 영향을 적게 받아 전반적인 감축 포텐셜을 평가하는 데 가장 신뢰할 수 있는 지표입니다.
+        </div>
+    """, unsafe_allow_html=True)
+
 # ==========================================
-# [Tab 3] 스마트 이동 시뮬레이터 (마이크로 실천 가치 포함)
+# [Tab 3] 스마트 이동 시뮬레이터
 # ==========================================
 with tabs[2]:
     st.subheader("⚡ 스마트 전력 이동 시뮬레이터")
-    st.markdown("가정이나 교실에서 사용하는 가전제품의 작동 시간을 저녁 피크 타임에서 깨끗한 낮 시간대로 옮겼을 때의 감축 효과를 계산합니다.")
+    st.markdown("가정이나 교실에서 사용하는 가전제품의 작동 시간을 피크 타임에서 깨끗한 낮 시간대로 옮겼을 때의 감축 효과를 시뮬레이션합니다.")
 
     col_in1, col_in2 = st.columns(2)
 
@@ -297,7 +320,7 @@ with tabs[2]:
             preset_name = row_p["category"]
             default_kwh = row_p["co2_median"] / 414.9
             kwh = st.slider("전력량 (kWh) [상대 추정]", 0.1, 10.0, float(round(default_kwh, 2)), 0.1)
-            st.caption(f"📌 선택 품목: **{preset_name}** | 표준 1회 배출량 기준: {row_p['co2_median']:.1f} g (한국 전력망 평균 414.9g/kWh 기준 약 {kwh:.2f} kWh 환산)")
+            st.caption(f"📌 선택 품목: **{preset_name}** | 기준 전력량 환산: {kwh:.2f} kWh")
         else:
             kwh = st.number_input("전력량 (kWh)", min_value=0.1, max_value=100.0, value=1.5, step=0.1)
 
@@ -319,7 +342,6 @@ with tabs[2]:
         saved_g = r.get('saved_g', 0)
         saved_rate = r.get('saved_rate', 0)
         
-        # band 데이터에서 ci_from, ci_to 가져오기
         try:
             matched_row = band[band['scenario'] == scenario]
             if not matched_row.empty:
@@ -367,7 +389,7 @@ with tabs[2]:
         )
         m2.metric("이동 전 배출량", f"{emission_before:.1f} g")
         m3.metric("이동 후 배출량", f"{emission_after:.1f} g")
-        m4.metric("아예 안 쓸 때 (절약)", f"{saved_g_noreduce:.1f} g", help="전기를 사용하지 않는 절약(Reduction)은 언제나 탄소 감축에 가장 강력합니다.")
+        m4.metric("아예 안 쓸 때 (절약)", f"{saved_g_noreduce:.1f} g", help="전기 소비 자체를 줄이는 절약(Reduction)은 언제나 가장 강력한 감축 수단입니다.")
 
         if saved_g > 0:
             annual_saved_kg = (saved_g * 365) / 1000
@@ -375,11 +397,11 @@ with tabs[2]:
             car_km = annual_saved_kg / 0.192
 
             st.info(
-                f"🏫 **우리 집 & 우리 교실의 일상 속 실천 가치 (매일 실천 시)**\n\n"
-                f"- 연간 **{annual_saved_kg:.1f} kg**의 CO₂ 절감\n"
+                f"🏫 **우리 집 & 우리 교실의 마이크로 실천 가치 (매일 실천 시)**\n\n"
+                f"- 연간 **{annual_saved_kg:.1f} kg**의 CO₂ 절감 효과\n"
                 f"- **소나무 약 {pine_trees:.1f}그루**가 1년 동안 흡수하는 탄소량과 동일\n"
-                f"- **내연기관차 약 {car_km:.1f} km** 주행 거리를 줄인 친환경 효과\n\n"
-                f"💡 *하나의 작은 행동도 일 년간 모이면 소중한 환경적 가치가 됩니다!*"
+                f"- **내연기관차 약 {car_km:.1f} km** 주행 거리를 상쇄하는 친환경 가치\n\n"
+                f"💡 *하나의 작은 습관이 모여 지속 가능한 미래 전력망을 만듭니다!*"
             )
 
         st.markdown("#### 🔬 계수 세트별 비교 (불확실성 분석)")
@@ -390,13 +412,13 @@ with tabs[2]:
         st.dataframe(best_df.head(3).round(3), use_container_width=True)
 
 # ==========================================
-# [Tab 4] 정직한 결과 & 한계 (스토리텔링 반영)
+# [Tab 4] 정직한 결과 & 한계
 # ==========================================
 with tabs[3]:
     st.markdown("### 📊 정직한 결과: 왜 국가 단위 감축률은 작아 보일까요?")
     st.markdown(
         "탄소 배출량 감소율은 **어떤 기준(분모)을 적용하느냐**에 따라 수치가 달라집니다. "
-        "본 연구는 효과를 과장하지 않고, 3가지 기준을 투명하게 비교하여 **수요 이동(Shifting)의 한계와 실천적 의미**를 함께 직시합니다."
+        "본 연구는 효과를 과장하지 않고, 3가지 기준을 투명하게 비교하여 **수요 이동(Shifting)의 물리적 한계**를 명확히 직시합니다."
     )
 
     denoms = E.denominators(p=0.1, season=season_arg, day_type=day_arg)
@@ -426,28 +448,28 @@ with tabs[3]:
             <div class="custom-card" style="border-top: 4px solid #d62728; text-align: center;">
                 <div style="font-size: 0.85rem; color: #e56b6f; font-weight: bold;">기준 ③ 일일 총사용량 기준 (시장 전체)</div>
                 <div style="font-size: 2rem; font-weight: 800; color: #d62728; margin: 10px 0;">{denoms['daily_rate_market']*100:.2f}%</div>
-                <p style="font-size: 0.85rem; color: #666; margin: 0;">하루 국가 전체 총배출량 대비 실제 비율 (거시적 한계)</p>
+                <p style="font-size: 0.85rem; color: #666; margin: 0;">하루 국가 전체 총배출량 대비 실제 비율 (냉정한 현실)</p>
             </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     denom_df = pd.DataFrame([
-        {"분모 기준": "이동분 기준 (Moved Share, p=10%)", "감소율(%)": f"{denoms['moved_rate']*100:.2f}%", "해석 및 의미": "개별 가전/학습 활동 관점에서는 약 9~10%의 유의미한 감축 효과"},
-        {"분모 기준": "저녁 총사용량 기준 (Evening Total)", "감소율(%)": f"{denoms['evening_rate']*100:.2f}%", "해석 및 의미": "저녁 피크 타임 부하 중 일부가 낮 시간으로 전환되는 기여도"},
-        {"분모 기준": "일일 총사용량 기준 (실제 시장)", "감소율(%)": f"{denoms['daily_rate_market']*100:.2f}%", "해석 및 의미": "거대 전력망 전체 규모 대비 한 개인이 미치는 물리적 비중의 한계"},
+        {"분모 기준": "이동분 기준 (Moved Share, p=10%)", "감소율(%)": f"{denoms['moved_rate']*100:.2f}%", "해석 및 의미": "개별 활동 관점에서는 약 9~10%의 유의미한 감축 가능"},
+        {"분모 기준": "저녁 총사용량 기준 (Evening Total)", "감소율(%)": f"{denoms['evening_rate']*100:.2f}%", "해석 및 의미": "저녁 피크 타임 부하 중 일부가 낮 시간으로 전환되는 효과"},
+        {"분모 기준": "일일 총사용량 기준 (실제 시장)", "감소율(%)": f"{denoms['daily_rate_market']*100:.2f}%", "해석 및 의미": "거대 전력망 전체 규모 대비 한 개인이 미치는 물리적 영향의 한계"},
     ])
     st.dataframe(denom_df, use_container_width=True, hide_index=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### 🌟 작은 행동이 모여 만드는 진정한 시사점")
+    st.markdown("### 🌟 연구의 시사점 및 한계 극복 제언")
     
     st.markdown("""
         <div class="custom-card card-success">
             <ul style="margin: 0; padding-left: 20px; line-height: 1.7; color: #262730;">
-                <li><b>거시적 한계와 미시적 실천:</b> 국가 전력망 전체로 보면 개인이 옮기는 전력량은 약 0.3%에 불과할 수 있습니다. 하지만 <b>우리 집, 우리 교실, 우리 동아리</b> 단위로 좁혀보면 연간 수십 kg의 CO₂를 줄이는 실질적 효과를 냅니다.</li>
-                <li><b>'절약(Reduction)'과의 우위 비교:</b> 전기를 깨끗한 시간대에 골라 쓰는 스마트 이동도 훌륭하지만, 전력 소비 자체를 아끼는 <b>절약이 언제나 최우선</b>입니다.</li>
-                <li><b>미래 전력망의 핵심 나침반:</b> 재생에너지(태양광·풍력) 비중이 커질 미래에는 낮 시간의 과잉 전력을 활용하는 <b>스마트 수요 이동 습관</b>이 전력망 안정화와 탄소 중립을 이끄는 필수 문화가 됩니다.</li>
+                <li><b>거시적 한계와 미시적 가치:</b> 국가 전력망 전체 관점에서 개인이 가전을 옮기는 효과는 일일 기준 약 0.3%에 불과합니다. 하지만 학교, 가정 등 마이크로 스케일에서는 뚜렷한 탄소 절감 성과를 냅니다.</li>
+                <li><b>절약(Reduction)의 절대적 우위:</b> 전기를 깨끗한 시간에 쓰는 것보다, <b>전기 사용량 자체를 줄이는 절약이 언제나 최우선 순위</b>입니다.</li>
+                <li><b>미래 전력망의 필수 장치:</b> 향후 재생에너지 비중이 급증할 미래에는 낮 시간의 과잉 전력을 흡수하기 위한 스마트 수요 이동 기술과 문화가 핵심적인 역할을 담당하게 됩니다.</li>
             </ul>
         </div>
     """, unsafe_allow_html=True)
@@ -456,16 +478,16 @@ with tabs[3]:
 # [Tab 5] 데이터 & 방법론
 # ==========================================
 with tabs[4]:
-    st.subheader("📚 데이터 출처 및 방법론 요약")
+    st.subheader("📚 데이터 출처 및 연구 방법론")
     st.markdown(
         "본 프로젝트는 공공 데이터와 투명한 알고리즘을 바탕으로 구축되었습니다.\n\n"
         "1. **전력거래소 (KPX) 시간별 발전원별 전력데이터:** 2025년 기준 전국 발전원별 실시간 발전량 및 탄소배출계수\n"
         "2. **IPCC 기후변화에 관한 정부간 협의체 가이드라인:** 전과정 탄소배출계수 (최소/중앙/최대 세트)\n"
         "3. **환경부 및 한국에너지공단 표준 자료:** 가전제품 표준 전력 소비량 및 탄소 배출 통계\n"
         "4. **데이터 처리 파이프라인:** Pandas를 활용한 결측치 정제, 일자별/계절별 분류, 거래시간(1~24) 정규화\n\n"
-        "💻 **GitHub 저장소:** [프로젝트 소스코드 링크 바로가기](https://github.com/)\n"
-        "🤖 **AI 협업 내역:** 고성능 AI 협업을 통해 엔진 검증 및 Streamlit 대시보드를 구축하였습니다."
+        "💻 **TEAM WHENWHATWATT | GitHub 저장소:** [프로젝트 소스코드 바로가기](https://github.com/)\n"
+        "🤖 **AI 협업 내역:** 데이터 분석 엔진 검증 및 Streamlit 대시보드 고도화 완료"
     )
 
 st.markdown("---")
-st.caption("© 2026 데이터분석연구회 | Smart Carbon Shifting Project — All Rights Reserved.")
+st.markdown("<p style='text-align: center; color: #666; font-size: 0.85rem;'>© 2026 WHENWHATWATT. All Rights Reserved. | 2026 Data Research and Analysis</p>", unsafe_allow_html=True)
