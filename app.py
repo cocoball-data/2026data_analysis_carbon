@@ -272,6 +272,47 @@ with tabs[1]:
     """, unsafe_allow_html=True)
 
     st.markdown("---")
+    st.subheader("☀️ 월별 태양광 발전 비중 vs 정오-저녁 탄소집약도 격차 산점도")
+    st.markdown("월별 태양광 발전 비중이 높아질수록 정오(12~14시)와 저녁 피크(19~21시) 간 탄소집약도 격차(%)가 어떻게 변하는지 상관관계를 분석합니다.")
+
+    gap_path = CLEAN_DIR / "ci_month_gap.csv"
+    if gap_path.exists():
+        gap_df = pd.read_csv(gap_path)
+        
+        fig_scatter = px.scatter(
+            gap_df,
+            x="solar_share_noon_pct",
+            y="gap_pct",
+            text="month",
+            labels={
+                "solar_share_noon_pct": "정오 시간대 태양광 발전 비중 (%)",
+                "gap_pct": "정오-저녁 탄소집약도 격차 (%)",
+                "month": "월"
+            },
+            title="월별 태양광 비중과 탄소집약도 절감 격차 간의 상관관계"
+        )
+        fig_scatter.update_traces(
+            marker=dict(size=14, color="#2d6a4f", line=dict(width=1, color="#1b4332")),
+            textposition="top center",
+            textfont=dict(size=12, color="#1b4332", family="sans-serif")
+        )
+        fig_scatter.update_layout(
+            plot_bgcolor="#ffffff",
+            paper_bgcolor="#ffffff",
+            xaxis=dict(gridcolor="#f0f0f0", zeroline=False),
+            yaxis=dict(gridcolor="#f0f0f0", zeroline=False)
+        )
+        st.plotly_chart(fig_scatter, use_container_width=True)
+
+        st.markdown("""
+            <div class="insight-box">
+                <b>💡 산점도 데이터 인사이트:</b> 정오 시간대의 태양광 발전 비중이 높은 달(봄·가을철)일수록 저녁 피크 시간대 대비 탄소집약도 절감 격차가 커지는 뚜렷한 <b>양의 상관관계</b>를 보입니다. 이는 수요 이동(Load Shifting) 전략이 태양광 발전량이 풍부한 시기에 가장 극적인 효과를 낸다는 과학적 근거가 됩니다.
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.info("월별 격차 데이터(ci_month_gap.csv)를 찾을 수 없습니다.")
+
+    st.markdown("---")
     st.subheader("📊 날짜별 이동 감축률 분포 (365일)")
     st.markdown("동일한 시간 이동(예: 저녁 7시 → 낮 12시)을 하더라도, 연중 날마다 전력 상황에 따라 감축 효과가 다르게 나타납니다.")
 
@@ -313,47 +354,6 @@ with tabs[1]:
             <b>💡 통계 분석 가이드:</b> 365일 전수 조사 결과, 수요 이동을 통한 감축률의 <b>중앙값은 {median_val:.1f}%</b>로 나타났습니다. 하루하루 변동이 심한 전력 시장에서 이 중앙값은 우리 시뮬레이션의 객관적 신뢰성을 뒷받침하는 핵심 지표입니다.
         </div>
     """, unsafe_allow_html=True)
-   st.markdown("---")
-    st.subheader("☀️ 월별 태양광 발전 비중 vs 정오-저녁 탄소집약도 격차 산점도")
-    st.markdown("월별 태양광 발전 비중이 높아질수록 정오(12~14시)와 저녁 피크(19~21시) 간 탄소집약도 격차(%)가 어떻게 변하는지 상관관계를 분석합니다.")
-
-    gap_path = CLEAN_DIR / "ci_month_gap.csv"
-    if gap_path.exists():
-        gap_df = pd.read_csv(gap_path)
-        
-        # 산점도 그래프 생성 (trendline 제거로 의존성 에러 방지)
-        fig_scatter = px.scatter(
-            gap_df,
-            x="solar_share_noon_pct",
-            y="gap_pct",
-            text="month",
-            labels={
-                "solar_share_noon_pct": "정오 시간대 태양광 발전 비중 (%)",
-                "gap_pct": "정오-저녁 탄소집약도 격차 (%)",
-                "month": "월"
-            },
-            title="월별 태양광 비중과 탄소집약도 절감 격차 간의 상관관계"
-        )
-        fig_scatter.update_traces(
-            marker=dict(size=14, color="#2d6a4f", line=dict(width=1, color="#1b4332")),
-            textposition="top center",
-            textfont=dict(size=12, color="#1b4332", family="sans-serif")
-        )
-        fig_scatter.update_layout(
-            plot_bgcolor="#ffffff",
-            paper_bgcolor="#ffffff",
-            xaxis=dict(gridcolor="#f0f0f0", zeroline=False),
-            yaxis=dict(gridcolor="#f0f0f0", zeroline=False)
-        )
-        st.plotly_chart(fig_scatter, use_container_width=True)
-
-        st.markdown("""
-            <div class="insight-box">
-                <b>💡 산점도 데이터 인사이트:</b> 정오 시간대의 태양광 발전 비중이 높은 달(봄·가을철)일수록 저녁 피크 시간대 대비 탄소집약도 절감 격차가 커지는 뚜렷한 <b>양의 상관관계</b>를 보입니다. 이는 수요 이동(Load Shifting) 전략이 태양광 발전량이 풍부한 시기에 가장 극적인 효과를 낸다는 과학적 근거가 됩니다.
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.info("월별 격차 데이터(ci_month_gap.csv)를 찾을 수 없습니다.")
 
 # ==========================================
 # [Tab 3] 스마트 이동 시뮬레이터
