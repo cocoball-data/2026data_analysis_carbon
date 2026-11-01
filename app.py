@@ -346,13 +346,29 @@ with tabs[2]:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("### 🎯 시뮬레이션 결과 리포트")
 
-        saved_g = r.get('saved_g', 0)
-        saved_rate = r.get('saved_rate', 0)
-        emission_before = r.get('emission_before', 0)
-        emission_after = r.get('emission_after', 0)
-        saved_g_noreduce = r.get('saved_g_noreduce', 0)
+        saved_g = r.get('saved_g', r.get('saved', 0))
+        saved_rate = r.get('saved_rate', r.get('rate', 0))
+        
+        # 💡 불확실성 분석 테이블(band)에서 현재 선택된 시나리오의 ci_from, ci_to를 가져와 배출량 계산
+        try:
+            matched_row = band[band['scenario'] == scenario]
+            if not matched_row.empty:
+                ci_from = matched_row.iloc[0]['ci_from']
+                ci_to = matched_row.iloc[0]['ci_to']
+            else:
+                ci_from = band.iloc[0]['ci_from']
+                ci_to = band.iloc[0]['ci_to']
+            
+            emission_before = kwh * ci_from
+            emission_after = kwh * ci_to
+        except:
+            emission_before = 0.0
+            emission_after = 0.0
 
-        # [어색함 보완] 마이너스일 때 '감소' 표현을 '증가' 표현으로 동적 변경
+        # 아예 안 쓸 때 절약량은 이동 전 배출량(전기 사용으로 인한 총 배출량)과 같습니다.
+        saved_g_noreduce = emission_before
+
+        # 탄소 감축 여부에 따른 동적 메시지 및 카드 분기
         if saved_g >= 0:
             st.markdown(f"""
                 <div class="custom-card card-success">
