@@ -11,22 +11,17 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. 커스텀 CSS (미감 살리기: 고급 에코 그린 톤, 카드 섀도우, 깔끔한 폰트 & 뱃지)
+# 2. 커스텀 CSS (고급 에코 그린 톤, 카드 섀도우, 메트릭 뱃지)
 st.markdown("""
     <style>
-    /* 메인 배경 및 기본 폰트 */
     .main {
         background-color: #F8FAF8;
     }
-    
-    /* 타이틀 텍스트 스타일 */
     .title-header {
         color: #1b4332;
         font-weight: 800;
         margin-bottom: 5px;
     }
-    
-    /* 카드 컨테이너 스타일 */
     .custom-card {
         background-color: #ffffff;
         padding: 24px;
@@ -35,20 +30,14 @@ st.markdown("""
         border: 1px solid #e9f5ed;
         margin-bottom: 20px;
     }
-    
-    /* 긍정적인 감축 성공 카드 */
     .card-success {
         border-left: 6px solid #2d6a4f;
         background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
     }
-    
-    /* 경고/배출 증가 카드 */
     .card-warning {
         border-left: 6px solid #d62728;
         background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
     }
-    
-    /* 메트릭 강조 숫자 */
     .metric-value {
         font-size: 1.8rem;
         font-weight: 700;
@@ -59,8 +48,6 @@ st.markdown("""
         color: #52b788;
         font-weight: 600;
     }
-    
-    /* 사이드바 스타일링 */
     [data-testid="stSidebar"] {
         background-color: #F0F7F2;
         border-right: 1px solid #d8ebd9;
@@ -90,7 +77,7 @@ except Exception as e:
     st.error(f"데이터 엔진 로드 중 오류가 발생했습니다: {e}")
     st.stop()
 
-# --- 사이드바: 설정 및 안내 ---
+# --- 사이드바: 설정 및 메시지 ---
 st.sidebar.markdown("### 🎛️ 시뮬레이션 조건 설정")
 
 season = st.sidebar.selectbox("계절 선택", ["전체", "봄", "여름", "가을", "겨울"], index=1)
@@ -114,7 +101,7 @@ st.sidebar.info(
     "💡 **핵심 메시지**\n\n"
     "\"같은 전기도 언제 쓰느냐에 따라 탄소 배출이 달라집니다.\"\n\n"
     "🌱 **평균 9% 감축** (일별 3~22%)\n"
-    "⚠️ 하지만 시간 이동보다 **전체 절약이 최우선**입니다!"
+    "🏫 **교실과 가정에서의 작은 습관 변화**가 친환경 전력망을 만드는 첫걸음입니다!"
 )
 
 # --- 메인 타이틀 & 배너 ---
@@ -221,94 +208,74 @@ with tabs[0]:
         st.info("전력원별 구성 데이터(fuel_hour_mix.csv)를 찾을 수 없습니다.")
 
 # ==========================================
-    # [Tab 2] 연중 히트맵 & 분포 (디자인 업그레이드된 히스토그램)
-    # ==========================================
-    with tabs[1]:
-        st.subheader("🗺️ 월별 × 시간대 탄소집약도 히트맵")
-        st.markdown("1년 365일 동안 월과 시간에 따라 탄소집약도가 어떻게 분포하는지 거시적인 패턴을 조망합니다.")
+# [Tab 2] 연중 히트맵 & 분포 (디자인 업그레이드)
+# ==========================================
+with tabs[1]:
+    st.subheader("🗺️ 월별 × 시간대 탄소집약도 히트맵")
+    st.markdown("1년 365일 동안 월과 시간에 따라 탄소집약도가 어떻게 분포하는지 거시적인 패턴을 조망합니다.")
 
-        month_hour_path = CLEAN_DIR / "ci_month_hour.csv"
-        if month_hour_path.exists():
-            mh_df = pd.read_csv(month_hour_path)
-            mh_pivot = mh_df.pivot(index="month", columns="hour", values="ci_mid")
-            fig_hm = px.imshow(
-                mh_pivot,
-                labels=dict(x="시각 (Hour)", y="월 (Month)", color="g/kWh"),
-                x=mh_pivot.columns,
-                y=mh_pivot.index,
-                color_continuous_scale="Viridis",
-                title="월별-시간대별 평균 탄소집약도 히트맵"
-            )
-            # 히트맵 배경 및 여백 정돈
-            fig_hm.update_layout(
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=20, r=20, t=50, b=20)
-            )
-            st.plotly_chart(fig_hm, use_container_width=True)
-
-        st.markdown("---")
-        st.subheader("📊 날짜별 이동 감축률 분포 (365일)")
-        st.markdown("동일한 시간 이동(예: 19시 → 12시, 2시간)을 하더라도, 날마다 전력 상황에 따라 감축 효과가 3% ~ 22%로 다르게 나타납니다.")
-
-        dd_s = E.daily_distribution()
-        median_val = dd_s.median()  # 분포의 중앙값 계산
-
-        # 1. 히스토그램 객체 생성
-        fig_hist = px.histogram(
-            x=dd_s, nbins=30,
-            labels={"x": "이동 감축률 (%)", "count": "일수 (Days)"},
-            title="365일 일별 이동 감축률 분포 및 중앙값 분석"
+    month_hour_path = CLEAN_DIR / "ci_month_hour.csv"
+    if month_hour_path.exists():
+        mh_df = pd.read_csv(month_hour_path)
+        mh_pivot = mh_df.pivot(index="month", columns="hour", values="ci_mid")
+        fig_hm = px.imshow(
+            mh_pivot,
+            labels=dict(x="시각 (Hour)", y="월 (Month)", color="g/kWh"),
+            x=mh_pivot.columns,
+            y=mh_pivot.index,
+            color_continuous_scale="Viridis",
+            title="월별-시간대별 평균 탄소집약도 히트맵"
         )
-        
-        # 2. 바(Bar) 스타일 정교화 (부드러운 투명도와 테두리선 부여)
-        fig_hist.update_traces(
-            marker_color="#2d6a4f", 
-            marker_line_color="#1b4332", 
-            marker_line_width=1.2,
-            opacity=0.85
-        )
-        
-        # 3. 핵심 포인트인 '중앙값' 수직선(Line)과 라벨 추가로 정보성 및 시각적 완성도 극대화
-        fig_hist.add_vline(
-            x=median_val, 
-            line_dash="dash", 
-            line_color="#d62728", 
-            annotation_text=f"중앙값: {median_val:.1f}%", 
-            annotation_position="top right",
-            annotation_font=dict(size=12, color="#d62728", family="sans-serif")
-        )
-
-        # 4. 레이아웃 미감 극대화 (배경 투명화, 그리드 은은하게 처리)
-        fig_hist.update_layout(
+        fig_hm.update_layout(
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(family="sans-serif", size=12, color="#262730"),
-            xaxis=dict(
-                gridcolor="#E5E7EB", 
-                zeroline=False, 
-                showline=True, 
-                linewidth=1, 
-                linecolor="#D1D5DB"
-            ),
-            yaxis=dict(
-                gridcolor="#E5E7EB", 
-                zeroline=False, 
-                showline=True, 
-                linewidth=1, 
-                linecolor="#D1D5DB"
-            ),
-            margin=dict(l=40, r=40, t=60, b=40),
-            title_font=dict(size=16, color="#1b4332", family="sans-serif")
+            margin=dict(l=20, r=20, t=50, b=20)
         )
-        st.plotly_chart(fig_hist, use_container_width=True)
+        st.plotly_chart(fig_hm, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("📊 날짜별 이동 감축률 분포 (365일)")
+    st.markdown("동일한 시간 이동(예: 19시 → 12시, 2시간)을 하더라도, 날마다 전력 상황에 따라 감축 효과가 3% ~ 22%로 다르게 나타납니다.")
+
+    dd_s = E.daily_distribution()
+    median_val = dd_s.median()
+
+    fig_hist = px.histogram(
+        x=dd_s, nbins=30,
+        labels={"x": "이동 감축률 (%)", "count": "일수 (Days)"},
+        title="365일 일별 이동 감축률 분포 및 중앙값 분석"
+    )
+    fig_hist.update_traces(
+        marker_color="#2d6a4f", 
+        marker_line_color="#1b4332", 
+        marker_line_width=1.2,
+        opacity=0.85
+    )
+    fig_hist.add_vline(
+        x=median_val, 
+        line_dash="dash", 
+        line_color="#d62728", 
+        annotation_text=f"중앙값: {median_val:.1f}%", 
+        annotation_position="top right",
+        annotation_font=dict(size=12, color="#d62728", family="sans-serif")
+    )
+    fig_hist.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="sans-serif", size=12, color="#262730"),
+        xaxis=dict(gridcolor="#E5E7EB", zeroline=False, showline=True, linewidth=1, linecolor="#D1D5DB"),
+        yaxis=dict(gridcolor="#E5E7EB", zeroline=False, showline=True, linewidth=1, linecolor="#D1D5DB"),
+        margin=dict(l=40, r=40, t=60, b=40),
+        title_font=dict(size=16, color="#1b4332", family="sans-serif")
+    )
+    st.plotly_chart(fig_hist, use_container_width=True)
 
 # ==========================================
-# [Tab 3] 스마트 이동 시뮬레이터 (핵심 디테일 수정 적용)
+# [Tab 3] 스마트 이동 시뮬레이터 (마이크로 실천 가치 포함)
 # ==========================================
 with tabs[2]:
     st.subheader("⚡ 스마트 전력 이동 시뮬레이터")
-    st.markdown("가전제품이나 전력 사용 활동을 저녁 피크 시간대에서 깨끗한 낮 시간대로 옮겼을 때의 감축 효과를 실시간으로 계산합니다.")
+    st.markdown("가정이나 교실에서 사용하는 가전제품의 작동 시간을 저녁 피크 타임에서 깨끗한 낮 시간대로 옮겼을 때의 감축 효과를 계산합니다.")
 
     col_in1, col_in2 = st.columns(2)
 
@@ -323,8 +290,6 @@ with tabs[2]:
             preset_choice = st.selectbox("가전제품 선택", p_df["category"].tolist())
             row_p = p_df[p_df["category"] == preset_choice].iloc[0]
             preset_name = row_p["category"]
-            
-            # [검증 가이드 반영] 414.9 g/kWh는 한국 전력망 평균 탄소집약도 환산 기준입니다.
             default_kwh = row_p["co2_median"] / 414.9
             kwh = st.slider("전력량 (kWh) [상대 추정]", 0.1, 10.0, float(round(default_kwh, 2)), 0.1)
             st.caption(f"📌 선택 품목: **{preset_name}** | 표준 1회 배출량 기준: {row_p['co2_median']:.1f} g (한국 전력망 평균 414.9g/kWh 기준 약 {kwh:.2f} kWh 환산)")
@@ -346,10 +311,10 @@ with tabs[2]:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("### 🎯 시뮬레이션 결과 리포트")
 
-        saved_g = r.get('saved_g', r.get('saved', 0))
-        saved_rate = r.get('saved_rate', r.get('rate', 0))
+        saved_g = r.get('saved_g', 0)
+        saved_rate = r.get('saved_rate', 0)
         
-        # 💡 불확실성 분석 테이블(band)에서 현재 선택된 시나리오의 ci_from, ci_to를 가져와 배출량 계산
+        # band 데이터에서 ci_from, ci_to 가져오기
         try:
             matched_row = band[band['scenario'] == scenario]
             if not matched_row.empty:
@@ -365,10 +330,8 @@ with tabs[2]:
             emission_before = 0.0
             emission_after = 0.0
 
-        # 아예 안 쓸 때 절약량은 이동 전 배출량(전기 사용으로 인한 총 배출량)과 같습니다.
         saved_g_noreduce = emission_before
 
-        # 탄소 감축 여부에 따른 동적 메시지 및 카드 분기
         if saved_g >= 0:
             st.markdown(f"""
                 <div class="custom-card card-success">
@@ -399,7 +362,7 @@ with tabs[2]:
         )
         m2.metric("이동 전 배출량", f"{emission_before:.1f} g")
         m3.metric("이동 후 배출량", f"{emission_after:.1f} g")
-        m4.metric("아예 안 쓸 때 (절약)", f"{saved_g_noreduce:.1f} g", help="절약(Reduction)은 언제나 이동(Shifting)보다 강력합니다.")
+        m4.metric("아예 안 쓸 때 (절약)", f"{saved_g_noreduce:.1f} g", help="전기를 사용하지 않는 절약(Reduction)은 언제나 탄소 감축에 가장 강력합니다.")
 
         if saved_g > 0:
             annual_saved_kg = (saved_g * 365) / 1000
@@ -407,10 +370,11 @@ with tabs[2]:
             car_km = annual_saved_kg / 0.192
 
             st.info(
-                f"🌿 **일상 속 환산 효과 (매일 실천 시)**\n\n"
+                f"🏫 **우리 집 & 우리 교실의 일상 속 실천 가치 (매일 실천 시)**\n\n"
                 f"- 연간 **{annual_saved_kg:.1f} kg**의 CO₂ 절감\n"
-                f"- **소나무 약 {pine_trees:.1f}그루**가 1년 동안 흡수하는 탄소량\n"
-                f"- **내연기관차 약 {car_km:.1f} km** 주행 시 발생하는 탄소 절감 효과"
+                f"- **소나무 약 {pine_trees:.1f}그루**가 1년 동안 흡수하는 탄소량과 동일\n"
+                f"- **내연기관차 약 {car_km:.1f} km** 주행 거리를 줄인 친환경 효과\n\n"
+                f"💡 *하나의 작은 행동도 일 년간 모이면 소중한 환경적 가치가 됩니다!*"
             )
 
         st.markdown("#### 🔬 계수 세트별 비교 (불확실성 분석)")
@@ -421,18 +385,17 @@ with tabs[2]:
         st.dataframe(best_df.head(3).round(3), use_container_width=True)
 
 # ==========================================
-# [Tab 4] 정직한 결과 & 한계 (디자인 & 스토리텔링 대폭 강화)
+# [Tab 4] 정직한 결과 & 한계 (스토리텔링 반영)
 # ==========================================
 with tabs[3]:
-    st.markdown("### 📊 정직한 결과: 왜 감축 효과가 작아 보일까요?")
+    st.markdown("### 📊 정직한 결과: 왜 국가 단위 감축률은 작아 보일까요?")
     st.markdown(
-        "탄소 배출량 감소율은 **어떤 기준(분모)을 적용하느냐**에 따라 수치가 극적으로 달라집니다. "
-        "본 연구는 효과를 과장하지 않고, 3가지 기준을 투명하게 비교하여 **수요 이동(Shifting)의 냉정한 한계**를 직시합니다."
+        "탄소 배출량 감소율은 **어떤 기준(분모)을 적용하느냐**에 따라 수치가 달라집니다. "
+        "본 연구는 효과를 과장하지 않고, 3가지 기준을 투명하게 비교하여 **수요 이동(Shifting)의 한계와 실천적 의미**를 함께 직시합니다."
     )
 
     denoms = E.denominators(p=0.1, season=season_arg, day_type=day_arg)
     
-    # 3가지 분모 기준을 인포그래픽 카드 형태로 시각화
     col_d1, col_d2, col_d3 = st.columns(3)
     
     with col_d1:
@@ -458,29 +421,28 @@ with tabs[3]:
             <div class="custom-card" style="border-top: 4px solid #d62728; text-align: center;">
                 <div style="font-size: 0.85rem; color: #e56b6f; font-weight: bold;">기준 ③ 일일 총사용량 기준 (시장 전체)</div>
                 <div style="font-size: 2rem; font-weight: 800; color: #d62728; margin: 10px 0;">{denoms['daily_rate_market']*100:.2f}%</div>
-                <p style="font-size: 0.85rem; color: #666; margin: 0;">하루 국가 전체 총배출량 대비 실제 비율 (냉정한 현실)</p>
+                <p style="font-size: 0.85rem; color: #666; margin: 0;">하루 국가 전체 총배출량 대비 실제 비율 (거시적 한계)</p>
             </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 요약 테이블 추가
     denom_df = pd.DataFrame([
-        {"분모 기준": "이동분 기준 (Moved Share, p=10%)", "감소율(%)": f"{denoms['moved_rate']*100:.2f}%", "해석 및 의미": "개별 활동 관점에서는 약 9~10%의 유의미한 감축 가능"},
-        {"분모 기준": "저녁 총사용량 기준 (Evening Total)", "감소율(%)": f"{denoms['evening_rate']*100:.2f}%", "해석 및 의미": "피크 타임 전체 부하 중 일부가 이동하는 효과"},
-        {"분모 기준": "일일 총사용량 기준 (실제 시장)", "감소율(%)": f"{denoms['daily_rate_market']*100:.2f}%", "해석 및 의미": "거대 전력망 전체를 기준으로 할 때 개인이 미치는 물리적 영향의 한계"},
+        {"분모 기준": "이동분 기준 (Moved Share, p=10%)", "감소율(%)": f"{denoms['moved_rate']*100:.2f}%", "해석 및 의미": "개별 가전/학습 활동 관점에서는 약 9~10%의 유의미한 감축 효과"},
+        {"분모 기준": "저녁 총사용량 기준 (Evening Total)", "감소율(%)": f"{denoms['evening_rate']*100:.2f}%", "해석 및 의미": "저녁 피크 타임 부하 중 일부가 낮 시간으로 전환되는 기여도"},
+        {"분모 기준": "일일 총사용량 기준 (실제 시장)", "감소율(%)": f"{denoms['daily_rate_market']*100:.2f}%", "해석 및 의미": "거대 전력망 전체 규모 대비 한 개인이 미치는 물리적 비중의 한계"},
     ])
     st.dataframe(denom_df, use_container_width=True, hide_index=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### ⚠️ 본 연구가 말하는 진정한 시사점 (한계와 제언)")
+    st.markdown("### 🌟 작은 행동이 모여 만드는 진정한 시사점")
     
     st.markdown("""
-        <div class="custom-card" style="background-color: #f8f9fa; border-left: 5px solid #1b4332;">
-            <ul style="margin: 0; padding-left: 20px; line-height: 1.6; color: #262730;">
-                <li><b>개인 행동의 한계 (효과의 미비성):</b> 전력망 전체의 거대한 규모에 비추어볼 때, 가전제품 몇 개를 시간대별로 옮기는 '수요 이동(Shifting)'만으로는 국가 단위 탄소 감축에 극적인 변화를 이끌어내기 어렵습니다. (일일 기준 약 0.3%)</li>
-                <li><b>절약(Reduction)의 절대적 우위:</b> 따라서 전기를 깨끗한 시간에 쓰는 것보다, <b>전기 사용량 자체를 줄이는 '절약'이 언제나 최우선 순위</b>여야 합니다.</li>
-                <li><b>그럼에도 이동(Shifting)이 필요한 이유:</b> 향후 재생에너지(태양광·풍력) 비중이 급증할 미래 전력 시장에서는 낮 시간에 발생하는 '전력 과잉 생산(출력 제어 문제)'을 흡수하기 위해 스마트 수요 이동 기술이 필수적인 제도적 장치가 됩니다.</li>
+        <div class="custom-card card-success">
+            <ul style="margin: 0; padding-left: 20px; line-height: 1.7; color: #262730;">
+                <li><b>거시적 한계와 미시적 실천:</b> 국가 전력망 전체로 보면 개인이 옮기는 전력량은 약 0.3%에 불과할 수 있습니다. 하지만 <b>우리 집, 우리 교실, 우리 동아리</b> 단위로 좁혀보면 연간 수십 kg의 CO₂를 줄이는 실질적 효과를 냅니다.</li>
+                <li><b>'절약(Reduction)'과의 우위 비교:</b> 전기를 깨끗한 시간대에 골라 쓰는 스마트 이동도 훌륭하지만, 전력 소비 자체를 아끼는 <b>절약이 언제나 최우선</b>입니다.</li>
+                <li><b>미래 전력망의 핵심 나침반:</b> 재생에너지(태양광·풍력) 비중이 커질 미래에는 낮 시간의 과잉 전력을 활용하는 <b>스마트 수요 이동 습관</b>이 전력망 안정화와 탄소 중립을 이끄는 필수 문화가 됩니다.</li>
             </ul>
         </div>
     """, unsafe_allow_html=True)
