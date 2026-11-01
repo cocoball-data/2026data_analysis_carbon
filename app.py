@@ -270,9 +270,51 @@ with tabs[1]:
             <b>🔍 히트맵 읽는 법:</b> 색상이 어두울수록(보라색) 탄소 배출이 적고, 밝을수록(노란색/초록빛) 배출이 많음을 뜻합니다. 봄·가을철 낮 시간대에 뚜렷하게 어두워지는 구역이 바로 우리가 노려야 할 '클린 타임'입니다.
         </div>
     """, unsafe_allow_html=True)
+    st.markdown("---")
+    st.subheader("📊 날짜별 이동 감축률 분포 (365일)")
+    st.markdown("동일한 시간 이동(예: 저녁 7시 → 낮 12시)을 하더라도, 연중 날마다 전력 상황에 따라 감축 효과가 다르게 나타납니다.")
+
+    dd_s = E.daily_distribution()
+    median_val = dd_s.median()
+
+    fig_hist = px.histogram(
+        x=dd_s, nbins=30,
+        labels={"x": "이동 감축률 (%)", "count": "일수 (Days)"},
+        title="365일 일별 이동 감축률 분포 및 중앙값 분석"
+    )
+    fig_hist.update_traces(
+        marker_color="#2d6a4f", 
+        marker_line_color="#1b4332", 
+        marker_line_width=1.2,
+        opacity=0.85
+    )
+    fig_hist.add_vline(
+        x=median_val, 
+        line_dash="dash", 
+        line_color="#d62728", 
+        annotation_text=f"중앙값: {median_val:.1f}%", 
+        annotation_position="top right",
+        annotation_font=dict(size=12, color="#d62728", family="sans-serif")
+    )
+    fig_hist.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="sans-serif", size=12, color="#262730"),
+        xaxis=dict(gridcolor="#E5E7EB", zeroline=False, showline=True, linewidth=1, linecolor="#D1D5DB"),
+        yaxis=dict(gridcolor="#E5E7EB", zeroline=False, showline=True, linewidth=1, linecolor="#D1D5DB"),
+        margin=dict(l=40, r=40, t=60, b=40),
+        title_font=dict(size=16, color="#1b4332", family="sans-serif")
+    )
+    st.plotly_chart(fig_hist, use_container_width=True)
+
+    st.markdown(f"""
+        <div class="insight-box">
+            <b>💡 통계 분석 가이드:</b> 365일 전수 조사 결과, 수요 이동을 통한 감축률의 <b>중앙값은 {median_val:.1f}%</b>로 나타났습니다. 하루하루 변동이 심한 전력 시장에서 이 중앙값은 우리 시뮬레이션의 객관적 신뢰성을 뒷받침하는 핵심 지표입니다.
+        </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.subheader("+☀️+ 월별 태양광 발전 비중 vs 정오-저녁 탄소집약도 격차 산점도")
+    st.subheader("+추가)☀️ 월별 태양광 발전 비중 vs 정오-저녁 탄소집약도 격차 산점도")
     st.markdown("월별 태양광 발전 비중이 높아질수록 정오(12-14시)와 저녁 피크(19-21시) 간 탄소집약도 격차(%)가 어떻게 변하는지 상관관계를 분석합니다.")
 
     gap_path = CLEAN_DIR / "ci_month_gap.csv"
@@ -316,49 +358,6 @@ with tabs[1]:
         """, unsafe_allow_html=True)
     else:
         st.info("월별 격차 데이터(ci_month_gap.csv)를 찾을 수 없습니다.")
-
-    st.markdown("---")
-    st.subheader("📊 날짜별 이동 감축률 분포 (365일)")
-    st.markdown("동일한 시간 이동(예: 저녁 7시 → 낮 12시)을 하더라도, 연중 날마다 전력 상황에 따라 감축 효과가 다르게 나타납니다.")
-
-    dd_s = E.daily_distribution()
-    median_val = dd_s.median()
-
-    fig_hist = px.histogram(
-        x=dd_s, nbins=30,
-        labels={"x": "이동 감축률 (%)", "count": "일수 (Days)"},
-        title="365일 일별 이동 감축률 분포 및 중앙값 분석"
-    )
-    fig_hist.update_traces(
-        marker_color="#2d6a4f", 
-        marker_line_color="#1b4332", 
-        marker_line_width=1.2,
-        opacity=0.85
-    )
-    fig_hist.add_vline(
-        x=median_val, 
-        line_dash="dash", 
-        line_color="#d62728", 
-        annotation_text=f"중앙값: {median_val:.1f}%", 
-        annotation_position="top right",
-        annotation_font=dict(size=12, color="#d62728", family="sans-serif")
-    )
-    fig_hist.update_layout(
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="sans-serif", size=12, color="#262730"),
-        xaxis=dict(gridcolor="#E5E7EB", zeroline=False, showline=True, linewidth=1, linecolor="#D1D5DB"),
-        yaxis=dict(gridcolor="#E5E7EB", zeroline=False, showline=True, linewidth=1, linecolor="#D1D5DB"),
-        margin=dict(l=40, r=40, t=60, b=40),
-        title_font=dict(size=16, color="#1b4332", family="sans-serif")
-    )
-    st.plotly_chart(fig_hist, use_container_width=True)
-
-    st.markdown(f"""
-        <div class="insight-box">
-            <b>💡 통계 분석 가이드:</b> 365일 전수 조사 결과, 수요 이동을 통한 감축률의 <b>중앙값은 {median_val:.1f}%</b>로 나타났습니다. 하루하루 변동이 심한 전력 시장에서 이 중앙값은 우리 시뮬레이션의 객관적 신뢰성을 뒷받침하는 핵심 지표입니다.
-        </div>
-    """, unsafe_allow_html=True)
 
 # ==========================================
 # [Tab 3] 스마트 이동 시뮬레이터
