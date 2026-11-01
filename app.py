@@ -197,35 +197,72 @@ with tabs[2]:
         sim_season = st.selectbox("시뮬레이션 계절", ["봄", "여름", "가을", "겨울"], index=0)
         sim_day = st.selectbox("시뮬레이션 요일 구분", ["평일", "휴일"], index=0)
 
-    if st.button("🚀 이동 효과 시뮬레이션 실행", type="primary"):
+   if st.button("🚀 이동 효과 시뮬레이션 실행", type="primary"):
         r = E.shift(kwh=kwh, from_start=from_time, to_start=to_time, duration=duration, season=sim_season, day_type=sim_day, scenario=scenario)
         band = E.shift_band(kwh=kwh, from_start=from_time, to_start=to_time, duration=duration, season=sim_season, day_type=sim_day)
 
         st.markdown("---")
+        
+        # 커스텀 CSS를 활용한 결과 카드 디자인 적용
+        st.markdown("""
+            <style>
+            .result-card {
+                padding: 20px;
+                border-radius: 10px;
+                background-color: #f0f4f1;
+                border-left: 5px solid #2ca02c;
+                margin-bottom: 20px;
+            }
+            .warning-card {
+                padding: 20px;
+                border-radius: 10px;
+                background-color: #fdf2f2;
+                border-left: 5px solid #d62728;
+                margin-bottom: 20px;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+        saved_g = r.get('saved_g', 0)
+        saved_rate = r.get('saved_rate', 0)
+        emission_before = r.get('emission_before', 0)
+        emission_after = r.get('emission_after', 0)
+        saved_g_noreduce = r.get('saved_g_noreduce', 0)
+
         st.markdown("### 🎯 시뮬레이션 결과 리포트")
 
-        # KeyError 방지를 위해 .get()을 사용하여 안전하게 값을 가져옵니다.
-        saved_g = r.get('saved_g', r.get('saved', 0))
-        saved_rate = r.get('saved_rate', r.get('rate', 0))
-        emission_before = r.get('emission_before', r.get('before', r.get('original_emission', 0)))
-        emission_after = r.get('emission_after', r.get('after', r.get('shifted_emission', 0)))
-        saved_g_noreduce = r.get('saved_g_noreduce', r.get('noreduce', 0))
+        # 탄소 감축 여부에 따른 동적 메시지 및 카드 분기
+        if saved_g >= 0:
+            st.markdown(f"""
+                <div class="result-card">
+                    <h4 style="color: #2ca02c; margin: 0;">🌱 성공적인 스마트 이동입니다!</h4>
+                    <p style="margin: 5px 0 0 0;">이동 전보다 <b>{saved_g:.1f} g</b>의 탄소 배출량을 줄였습니다. (효율: <b>{saved_rate*100:.1f}% 감축</b>)</p>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class="warning-card">
+                    <h4 style="color: #d62728; margin: 0;">⚠️ 주의: 오히려 탄소 배출량이 증가합니다!</h4>
+                    <p style="margin: 5px 0 0 0;">이 시간대로 옮기면 탄소 배출량이 <b>{abs(saved_g):.1f} g 증가</b>합니다. 이 시간대는 전력 집약도가 높으므로 피해야 합니다.</p>
+                </div>
+            """, unsafe_allow_html=True)
 
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("감축된 탄소량", f"{saved_g:.1f} g", delta=f"{saved_rate*100:.1f}% 감축", delta_color="normal")
+        m1.metric("변동 탄소량", f"{abs(saved_g):.1f} g", delta=f"{saved_rate*100:.1f}% {'감축' if saved_g >= 0 else '증가'}", delta_color="normal" if saved_g >= 0 else "inverse")
         m2.metric("이동 전 배출량", f"{emission_before:.1f} g")
         m3.metric("이동 후 배출량", f"{emission_after:.1f} g")
-        m4.metric("아예 안 쓸 때 감축량 (절약)", f"{saved_g_noreduce:.1f} g", help="절약은 이동 효과보다 큽니다!")
+        m4.metric("아예 안 쓸 때 (절약)", f"{saved_g_noreduce:.1f} g", help="절약은 이동 효과보다 항상 더 강력합니다!")
 
-        annual_saved_kg = (saved_g * 365) / 1000
-        pine_trees = annual_saved_kg / 6.6
-        car_km = annual_saved_kg / 0.192
+        if saved_g >= 0:
+            annual_saved_kg = (saved_g * 365) / 1000
+            pine_trees = annual_saved_kg / 6.6
+            car_km = annual_saved_kg / 0.192
 
-        st.info(
-            f"🌿 **일상 속 환산 효과**\n"
-            f"- 만약 이 행동을 **매일** 실천한다면 연간 **{annual_saved_kg:.1f} kg**의 CO₂를 줄일 수 있습니다.\n"
-            f"- 이는 **소나무 약 {pine_trees:.1f}그루**가 1년 동안 흡수하는 양이거나, **내연기관차 약 {car_km:.1f} km** 주행을 줄인 효과와 같습니다."
-        )
+            st.info(
+                f"🌿 **일상 속 환산 효과**\n\n"
+                f"- 만약 이 행동을 **매일** 실천한다면 연간 **{annual_saved_kg:.1f} kg**의 CO₂를 줄일 수 있습니다.\n"
+                f"- 이는 **소나무 약 {pine_trees:.1f}그루**가 1년 동안 흡수하는 양이거나, **내연기관차 약 {car_km:.1f} km** 주행을 줄인 효과와 같습니다."
+            )
 
         st.markdown("#### 🔬 계수 세트별 비교 (불확실성 분석)")
         st.dataframe(band.round(3), use_container_width=True)
