@@ -271,7 +271,7 @@ with tabs[1]:
         </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("---")
+st.markdown("---")
     st.subheader("☀️ 월별 태양광 발전 비중 vs 정오-저녁 탄소집약도 격차 산점도")
     st.markdown("월별 태양광 발전 비중이 높아질수록 정오(12~14시)와 저녁 피크(19~21시) 간 탄소집약도 격차(%)가 어떻게 변하는지 상관관계를 분석합니다.")
 
@@ -279,15 +279,21 @@ with tabs[1]:
     if gap_path.exists():
         gap_df = pd.read_csv(gap_path)
         
+        # 컬럼명 자동 확인 및 매핑 (에러 방지)
+        cols = gap_df.columns.tolist()
+        x_col = next((c for c in ['solar_share_noon_pct', 'solar_share', 'solar'] if c in cols), cols[1] if len(cols)>1 else cols[0])
+        y_col = next((c for c in ['gap_pct', 'gap', 'diff'] if c in cols), cols[2] if len(cols)>2 else cols[0])
+        text_col = next((c for c in ['month', 'date'] if c in cols), cols[0])
+
         fig_scatter = px.scatter(
             gap_df,
-            x="solar_share_noon_pct",
-            y="gap_pct",
-            text="month",
+            x=x_col,
+            y=y_col,
+            text=text_col,
             labels={
-                "solar_share_noon_pct": "정오 시간대 태양광 발전 비중 (%)",
-                "gap_pct": "정오-저녁 탄소집약도 격차 (%)",
-                "month": "월"
+                x_col: "정오 시간대 태양광 발전 비중 (%)",
+                y_col: "정오-저녁 탄소집약도 격차 (%)",
+                text_col: "월"
             },
             title="월별 태양광 비중과 탄소집약도 절감 격차 간의 상관관계"
         )
