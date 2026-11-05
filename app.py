@@ -142,7 +142,6 @@ st.markdown(
     <div class="badge-container">
         <span class="badge-item">🏷️ 전력 수요 이동 (Load Shifting)</span>
         <span class="badge-item">📊 데이터 해상도: 365일 × 24시간</span>
-        <span class="badge-item">⚖️ 지도교수 검증 3분모 기준 적용</span>
     </div>
     """, 
     unsafe_allow_html=True
