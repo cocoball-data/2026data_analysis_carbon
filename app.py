@@ -48,6 +48,21 @@ st.markdown("""
         color: #1b4332;
         line-height: 1.6;
     }
+    .badge-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+    .badge-item {
+        background-color: #e9f5ed;
+        color: #2d6a4f;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: 1px solid #d8ebd9;
+    }
     .metric-value {
         font-size: 1.8rem;
         font-weight: 700;
@@ -120,8 +135,18 @@ st.sidebar.markdown(
     f"- 시나리오: **{scenario.upper()}**"
 )
 
-# --- 메인 타이틀 & 배너 ---
+# --- 메인 타이틀 & 과하지 않은 3초 요약 뱃지 (개선 반영) ---
 st.markdown("<h1 class='title-header'>⚡ CARBON SHIFT</h1>", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div class="badge-container">
+        <span class="badge-item">🏷️ 전력 수요 이동 (Load Shifting)</span>
+        <span class="badge-item">📊 데이터 해상도: 365일 × 24시간</span>
+        <span class="badge-item">⚖️ 지도교수 검증 3분모 기준 적용</span>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
 st.markdown("<p style='font-size: 1.1rem; color: #52b788; font-weight: 600;'>WHENWHATWATT | 2026 Data Research and Analysis</p>", unsafe_allow_html=True)
 st.markdown(
     "전력 수요를 깨끗한 시간대로 옮겨 탄소 배출을 줄이는 **수요 이동(Load Shifting)** 효과를 "
@@ -178,6 +203,7 @@ tabs = st.tabs([
 with tabs[0]:
     st.subheader("📈 24시간 시간대별 탄소집약도 곡선")
     st.markdown(f"현재 선택하신 **[{season} / {day_type}]** 조건에서의 24시간 동안 전력 시스템 탄소집약도 변화 추이입니다.")
+    st.caption("💡 **Tip:** 그래프 위에 마우스를 올리면(Hover) 시간대별 상세 탄소집약도 수치를 정밀하게 확인하실 수 있습니다.")
 
     hours = list(range(24))
     ci_values = [h_ci.get(h, annual_mean) for h in hours]
@@ -239,11 +265,12 @@ with tabs[0]:
         st.info("전력원별 구성 데이터(fuel_hour_mix.csv)를 찾을 수 없습니다.")
 
 # ==========================================
-# [Tab 2] 연중 히트맵 & 분포 (산점도 안전성 강화 적용)
+# [Tab 2] 연중 히트맵 & 분포
 # ==========================================
 with tabs[1]:
     st.subheader("🗺️ 월별 × 시간대 탄소집약도 히트맵")
     st.markdown("1년 365일 동안 월과 시간에 따라 탄소집약도가 어떻게 분포하는지 거시적인 패턴을 조망합니다.")
+    st.caption("💡 **Tip:** 각 셀 위에 마우스를 올리면 해당 월·시간대의 정확한 탄소집약도(g/kWh)를 확인하실 수 있습니다.")
 
     month_hour_path = CLEAN_DIR / "ci_month_hour.csv"
     if month_hour_path.exists():
@@ -315,6 +342,7 @@ with tabs[1]:
     st.markdown("---")
     st.subheader("+추가)☀️ 월별 태양광 발전 비중 vs 정오-저녁 탄소집약도 격차 산점도")
     st.markdown("월별 태양광 발전 비중이 높아질수록 정오(12-14시)와 저녁 피크(19-21시) 간 탄소집약도 격차(%)가 어떻게 변하는지 상관관계를 분석합니다.")
+    st.caption("💡 **Tip:** 각 데이터 점 위에 마우스를 올리면 해당 월의 태양광 비중과 탄소 격차 수치를 상세히 보실 수 있습니다.")
 
     gap_path = CLEAN_DIR / "ci_month_gap.csv"
     if gap_path.exists():
@@ -325,7 +353,6 @@ with tabs[1]:
         y_col = next((c for c in ['gap_pct', 'gap', 'diff'] if c in cols), cols[2] if len(cols)>2 else cols[0])
         text_col = next((c for c in ['month', 'date'] if c in cols), cols[0])
 
-        # ⚠️ statsmodels 의존성 오류(trendline="ols")를 완벽히 배제하고 안정적으로 렌더링되도록 마커/텍스트 레이블 방식 고수
         fig_scatter = px.scatter(
             gap_df,
             x=x_col,
@@ -360,7 +387,7 @@ with tabs[1]:
         st.info("월별 격차 데이터(ci_month_gap.csv)를 찾을 수 없습니다.")
 
 # ==========================================
-# [Tab 3] 스마트 이동 시뮬레이터
+# [Tab 3] 스마트 이동 시뮬레이터 (동적 게이지 강화 적용)
 # ==========================================
 with tabs[2]:
     st.subheader("⚡ 스마트 전력 이동 시뮬레이터")
@@ -430,6 +457,10 @@ with tabs[2]:
                     </p>
                 </div>
             """, unsafe_allow_html=True)
+            # ✨ [추가] 시각적 진행 게이지 바 연출 (감축률 기준 0~100% 매핑)
+            progress_val = min(max(float(saved_rate * 100), 0.0), 100.0)
+            st.markdown(f"<p style='font-size:0.9rem; font-weight:600; color:#2d6a4f; margin-bottom:4px;'>감축 달성 지수 ({progress_val:.1f}%)</p>", unsafe_allow_html=True)
+            st.progress(progress_val / 100.0)
         else:
             st.markdown(f"""
                 <div class="custom-card card-warning">
@@ -475,7 +506,7 @@ with tabs[2]:
         st.dataframe(best_df.head(3).round(3), use_container_width=True)
 
 # ==========================================
-# [Tab 4] 정직한 결과 & 한계 (지도교수 피드백 3가지 기준 완벽 반영)
+# [Tab 4] 정직한 결과 & 한계
 # ==========================================
 with tabs[3]:
     st.markdown("### 📊 정직한 결과: 왜 국가 단위 감축률은 작아 보일까요?")
