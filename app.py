@@ -391,138 +391,14 @@ with tabs[1]:
         st.info("월별 격차 데이터(ci_month_gap.csv)를 찾을 수 없습니다.")
 
 # ==========================================
-# [Tab 3] 스마트 이동 시뮬레이터 & 다이어리 (버그 수정 반영)
+# [Tab 3] 스마트 이동 시뮬레이터 & 다이어리 (세션 저장 폼 구조 적용)
 # ==========================================
 with tabs[2]:
     st.subheader("⚡ 스마트 전력 이동 시뮬레이터 & 나의 친환경 다이어리")
     st.markdown("가정이나 교실에서 사용하는 가전제품의 작동 시간을 피크 타임에서 깨끗한 낮 시간대로 옮겼을 때의 감축 효과를 시뮬레이션하고, 내 실천을 기록합니다.")
 
-    col_in1, col_in2 = st.columns(2)
-
-    with col_in1:
-        input_mode = st.radio("전력량 입력 방식", ["가전 프리셋 선택", "직접 입력 (kWh)"])
-
-        presets_path = CLEAN_DIR / "activity_presets.csv"
-        kwh = 1.0
-        preset_name = "일반 가전활동"
-        if input_mode == "가전 프리셋 선택" and presets_path.exists():
-            p_df = pd.read_csv(presets_path)
-            preset_choice = st.selectbox("가전제품 선택", p_df["category"].tolist())
-            row_p = p_df[p_df["category"] == preset_choice].iloc[0]
-            preset_name = row_p["category"]
-            default_kwh = row_p["co2_median"] / 414.9
-            kwh = st.slider("전력량 (kWh) [상대 추정]", 0.1, 10.0, float(round(default_kwh, 2)), 0.1)
-            st.caption(f"📌 선택 품목: **{preset_name}** | 기준 전력량 환산: {kwh:.2f} kWh")
-        else:
-            kwh = st.number_input("전력량 (kWh)", min_value=0.1, max_value=100.0, value=1.5, step=0.1)
-
-        from_time = st.slider("원래 시작 시각 (From)", 0, 23, 19)
-        duration = st.slider("활동 지속 시간 (시간)", 1, 6, 2)
-
-    with col_in2:
-        to_time = st.slider("이동할 목표 시작 시각 (To)", 0, 23, 12)
-        sim_season = st.selectbox("시뮬레이션 계절", ["봄", "여름", "가을", "겨울"], index=0)
-        sim_day = st.selectbox("시뮬레이션 요일 구분", ["평일", "휴일"], index=0)
-
-    if st.button("🚀 이동 효과 시뮬레이션 실행", type="primary"):
-        r = E.shift(kwh=kwh, from_start=from_time, to_start=to_time, duration=duration, season=sim_season, day_type=sim_day, scenario=scenario)
-        band = E.shift_band(kwh=kwh, from_start=from_time, to_start=to_time, duration=duration, season=sim_season, day_type=sim_day)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### 🎯 시뮬레이션 결과 리포트")
-
-        saved_g = r.get('saved_g', 0)
-        saved_rate = r.get('saved_rate', 0)
-        
-        try:
-            matched_row = band[band['scenario'] == scenario]
-            if not matched_row.empty:
-                ci_from = matched_row.iloc[0]['ci_from']
-                ci_to = matched_row.iloc[0]['ci_to']
-            else:
-                ci_from = band.iloc[0]['ci_from']
-                ci_to = band.iloc[0]['ci_to']
-            
-            emission_before = kwh * ci_from
-            emission_after = kwh * ci_to
-        except:
-            emission_before = 0.0
-            emission_after = 0.0
-
-        saved_g_noreduce = emission_before
-
-        if saved_g >= 0:
-            st.markdown(f"""
-                <div class="custom-card card-success">
-                    <h3 style="color: #2d6a4f; margin:0;">🌱 친환경 스마트 이동 성공!</h3>
-                    <p style="margin-top:8px; font-size: 1.05rem; color:#262730;">
-                        <b>{from_time}시</b>에서 <b>{to_time}시</b>로 이동하여 <b>{saved_g:.1f} g</b>의 탄소 배출을 줄였습니다. 
-                        (전력 탄소 집약도 <b>{saved_rate*100:.1f}% 감축</b> 효과)
-                    </p>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            progress_val = min(max(float(saved_rate * 100), 0.0), 100.0)
-            st.markdown(f"<p style='font-size:0.9rem; font-weight:600; color:#2d6a4f; margin-bottom:4px;'>감축 달성 지수 ({progress_val:.1f}%)</p>", unsafe_allow_html=True)
-            st.progress(progress_val / 100.0)
-
-            # 📝 [다이어리 기록 버튼 - 즉시 세션 반영형]
-            if st.button("📝 내 탄소 다이어리에 실천 기록하기", key="add_diary_btn"):
-                entry = {
-                    "품목/활동": preset_name,
-                    "시간 이동": f"{from_time}시 ➔ {to_time}시",
-                    "계절": sim_season,
-                    "절감량(g)": round(saved_g, 1)
-                }
-                st.session_state.carbon_diary.append(entry)
-                st.success("✅ 다이어리에 실천 내역이 정상적으로 기록되었습니다! 아래 다이어리 섹션을 확인하세요.")
-        else:
-            st.markdown(f"""
-                <div class="custom-card card-warning">
-                    <h3 style="color: #d62728; margin:0;">⚠️ 주의: 탄소 배출량이 오히려 증가합니다!</h3>
-                    <p style="margin-top:8px; font-size: 1.05rem; color:#262730;">
-                        <b>{from_time}시</b>보다 <b>{to_time}시</b>의 전력 집약도가 더 높습니다. 
-                        이동 시 탄소 배출량이 <b>{abs(saved_g):.1f} g 증가 (+{abs(saved_rate)*100:.1f}%)</b>하므로 이 시간대는 피하는 것이 좋습니다.
-                    </p>
-                </div>
-            """, unsafe_allow_html=True)
-
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric(
-            "변동 탄소량", 
-            f"{abs(saved_g):.1f} g", 
-            delta=f"{saved_rate*100:.1f}% {'감축' if saved_g >= 0 else '증가'}", 
-            delta_color="normal" if saved_g >= 0 else "inverse"
-        )
-        m2.metric("이동 전 배출량", f"{emission_before:.1f} g")
-        m3.metric("이동 후 배출량", f"{emission_after:.1f} g")
-        m4.metric("아예 안 쓸 때 (절약)", f"{saved_g_noreduce:.1f} g", help="전기 소비 자체를 줄이는 절약(Reduction)은 언제나 가장 강력한 감축 수단입니다.")
-
-        if saved_g > 0:
-            annual_saved_kg = (saved_g * 365) / 1000
-            pine_trees = annual_saved_kg / 6.6
-            car_km = annual_saved_kg / 0.192
-
-            st.info(
-                f"🏫 **우리 집 & 우리 교실의 마이크로 실천 가치 (매일 실천 시)**\n\n"
-                f"- 연간 **{annual_saved_kg:.1f} kg**의 CO₂ 절감 효과\n"
-                f"- **소나무 약 {pine_trees:.1f}그루**가 1년 동안 흡수하는 탄소량과 동일\n"
-                f"- **내연기관차 약 {car_km:.1f} km** 주행 거리를 상쇄하는 친환경 가치\n\n"
-                f"💡 *하나의 작은 습관이 모여 지속 가능한 미래 전력망을 만듭니다!*"
-            )
-
-        st.markdown("#### 🔬 계수 세트별 비교 (불확실성 분석)")
-        st.dataframe(band.round(3), use_container_width=True)
-
-        st.markdown("#### ✨ 이 시간대에 하세요! (가장 깨끗한 시작 시각 Top 3)")
-        best_df = E.best_start(duration=duration, season=sim_season, day_type=sim_day, scenario=scenario)
-        st.dataframe(best_df.head(3).round(3), use_container_width=True)
-
-    # --- 실시간 다이어리 기록 시각화 영역 (탭 3 맨 아래 항상 배치) ---
-    st.markdown("---")
+    # 실시간 다이어리 영역을 아예 상단에 먼저 배치하여 기록이 언제든 눈에 띄게 함
     st.markdown("### 📖 나의 친환경 실천 다이어리 (Participation Log)")
-    st.markdown("시뮬레이션에서 검증된 스마트 이동을 내 루틴으로 기록하고, 누적 감축 효과를 한눈에 확인하세요.")
-
     if len(st.session_state.carbon_diary) > 0:
         total_diary_saved = sum([item["절감량(g)"] for item in st.session_state.carbon_diary])
         total_pine = (total_diary_saved * 365) / 1000 / 6.6
@@ -531,9 +407,6 @@ with tabs[2]:
         col_d_sum1.metric("누적 탄소 감축량 (실천 총합)", f"{total_diary_saved:.1f} gCO₂")
         col_d_sum2.metric("매일 실천 시 연간 소나무 환산", f"약 {total_pine:.2f} 그루 생태 기여")
         
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 📋 기록된 실천 내역 카드")
-        
         diary_df = pd.DataFrame(st.session_state.carbon_diary)
         st.dataframe(diary_df, use_container_width=True, hide_index=True)
 
@@ -541,7 +414,97 @@ with tabs[2]:
             st.session_state.carbon_diary = []
             st.rerun()
     else:
-        st.info("💡 **다이어리 사용법:** 위 시뮬레이터에서 가전제품과 시간을 설정하고 [이동 효과 시뮬레이션 실행]을 누른 뒤, 성공 결과 아래에 나타나는 **[📝 내 탄소 다이어리에 실천 기록하기]** 버튼을 눌러보세요!")
+        st.info("💡 아래 시뮬레이터에서 이동 효과를 실행한 뒤 **[📝 내 탄소 다이어리에 실천 기록하기]**를 누르면 이곳에 누적 기록이 쌓입니다.")
+
+    st.markdown("---")
+    st.markdown("### 🎛️ 시뮬레이터 설정 및 실행")
+
+    col_in1, col_in2 = st.columns(2)
+
+    with col_in1:
+        input_mode = st.radio("전력량 입력 방식", ["가전 프리셋 선택", "직접 입력 (kWh)"], key="sim_input_mode")
+
+        presets_path = CLEAN_DIR / "activity_presets.csv"
+        kwh = 1.0
+        preset_name = "일반 가전활동"
+        if input_mode == "가전 프리셋 선택" and presets_path.exists():
+            p_df = pd.read_csv(presets_path)
+            preset_choice = st.selectbox("가전제품 선택", p_df["category"].tolist(), key="sim_preset_choice")
+            row_p = p_df[p_df["category"] == preset_choice].iloc[0]
+            preset_name = row_p["category"]
+            default_kwh = row_p["co2_median"] / 414.9
+            kwh = st.slider("전력량 (kWh) [상대 추정]", 0.1, 10.0, float(round(default_kwh, 2)), 0.1, key="sim_kwh_slider")
+            st.caption(f"📌 선택 품목: **{preset_name}** | 기준 전력량 환산: {kwh:.2f} kWh")
+        else:
+            kwh = st.number_input("전력량 (kWh)", min_value=0.1, max_value=100.0, value=1.5, step=0.1, key="sim_kwh_num")
+
+        from_time = st.slider("원래 시작 시각 (From)", 0, 23, 19, key="sim_from_slider")
+        duration = st.slider("활동 지속 시간 (시간)", 1, 6, 2, key="sim_duration_slider")
+
+    with col_in2:
+        to_time = st.slider("이동할 목표 시작 시각 (To)", 0, 23, 12, key="sim_to_slider")
+        sim_season = st.selectbox("시뮬레이션 계절", ["봄", "여름", "가을", "겨울"], index=0, key="sim_season_sel")
+        sim_day = st.selectbox("시뮬레이션 요일 구분", ["평일", "휴일"], index=0, key="sim_day_sel")
+
+    # Streamlit Form을 활용하여 버튼 클릭 시 데이터 유지 및 세션 반영 보장
+    with st.form("simulation_form"):
+        submitted = st.form_submit_button("🚀 이동 효과 시뮬레이션 실행 및 다이어리 기록", type="primary")
+
+        if submitted:
+            r = E.shift(kwh=kwh, from_start=from_time, to_start=to_time, duration=duration, season=sim_season, day_type=sim_day, scenario=scenario)
+            band = E.shift_band(kwh=kwh, from_start=from_time, to_start=to_time, duration=duration, season=sim_season, day_type=sim_day)
+
+            saved_g = r.get('saved_g', 0)
+            saved_rate = r.get('saved_rate', 0)
+
+            # 감축 성공 시 세션에 자동 누적 기록
+            if saved_g >= 0:
+                entry = {
+                    "품목/활동": preset_name,
+                    "시간 이동": f"{from_time}시 ➔ {to_time}시",
+                    "계절": sim_season,
+                    "절감량(g)": round(saved_g, 1)
+                }
+                st.session_state.carbon_diary.append(entry)
+                st.success(f"🌱 [시뮬레이션 성공] {saved_g:.1f} g 감축 효과가 입증되어 **다이어리에 자동으로 기록**되었습니다!")
+            else:
+                st.warning(f"⚠️ [주의] 해당 시간 이동은 탄소 배출량이 오히려 증가({abs(saved_g):.1f} g)하므로 다이어리에 기록되지 않습니다.")
+
+            st.markdown("---")
+            st.markdown("### 🎯 이번 실행 결과 리포트")
+            
+            try:
+                matched_row = band[band['scenario'] == scenario]
+                if not matched_row.empty:
+                    ci_from = matched_row.iloc[0]['ci_from']
+                    ci_to = matched_row.iloc[0]['ci_to']
+                else:
+                    ci_from = band.iloc[0]['ci_from']
+                    ci_to = band.iloc[0]['ci_to']
+                
+                emission_before = kwh * ci_from
+                emission_after = kwh * ci_to
+            except:
+                emission_before = 0.0
+                emission_after = 0.0
+
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("변동 탄소량", f"{abs(saved_g):.1f} g", delta=f"{saved_rate*100:.1f}% {'감축' if saved_g >= 0 else '증가'}")
+            m2.metric("이동 전 배출량", f"{emission_before:.1f} g")
+            m3.metric("이동 후 배출량", f"{emission_after:.1f} g")
+            m4.metric("절약 효과 참고", f"{kwh * ci_from:.1f} g")
+
+            if saved_g > 0:
+                annual_saved_kg = (saved_g * 365) / 1000
+                pine_trees = annual_saved_kg / 6.6
+                st.info(f"🏫 연간 환산 시: **{annual_saved_kg:.1f} kg** 절감 (소나무 약 **{pine_trees:.1f}그루** 흡수량)")
+
+            st.markdown("#### 🔬 계수 세트별 비교 (불확실성 분석)")
+            st.dataframe(band.round(3), use_container_width=True)
+
+            st.markdown("#### ✨ 이 시간대에 하세요! (가장 깨끗한 시작 시각 Top 3)")
+            best_df = E.best_start(duration=duration, season=sim_season, day_type=sim_day, scenario=scenario)
+            st.dataframe(best_df.head(3).round(3), use_container_width=True)
 
 # ==========================================
 # [Tab 4] 정직한 결과 & 한계
