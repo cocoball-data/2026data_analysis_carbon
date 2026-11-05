@@ -102,7 +102,7 @@ except Exception as e:
     st.error(f"데이터 엔진 로드 중 오류가 발생했습니다: {e}")
     st.stop()
 
-# --- 세션 스테이트 초기화 (탄소 절감 다이어리용 기록 저장소) ---
+# --- 세션 스테이트 초기화 (탄소 절감 다이어리 기록 저장소) ---
 if "carbon_diary" not in st.session_state:
     st.session_state.carbon_diary = []
 
@@ -129,10 +129,6 @@ scenario = st.sidebar.selectbox(
 
 season_arg = None if season == "전체" else season
 day_arg = None if day_type == "전체" else day_type
-
-st.sidebar.markdown("---")
-# 미래지향적 시나리오 토글 (허황되지 않은 현실적 전력망 시뮬레이션)
-future_mode = st.sidebar.toggle("🔮 [미래 시나리오] 봄철 잉여 태양광 심화 가정 (+20%)", value=False)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
@@ -164,13 +160,6 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # 요약 메트릭 계산
 h_ci = E.hourly_ci(season=season_arg, day_type=day_arg, scenario=scenario)
-if future_mode:
-    # 미래 시나리오 가정: 낮 시간대(11~15시) 태양광 잉여 반영으로 탄소집약도 15% 추가 하향 보정
-    h_ci = h_ci.copy()
-    for hr in range(11, 16):
-        if hr in h_ci:
-            h_ci[hr] *= 0.85
-
 annual_mean = h_ci.mean()
 min_hour, min_val = int(h_ci.idxmin()), h_ci.min()
 max_hour, max_val = int(h_ci.idxmax()), h_ci.max()
@@ -188,7 +177,7 @@ with c1:
 with c2:
     st.markdown(f"""
         <div class="custom-card" style="border-top: 4px solid #2d6a4f;">
-            <div class="metric-label">☀️ 가장 깨끗한 시간 ({min_hour}시) { '🔮[미래+]' if future_mode else '' }</div>
+            <div class="metric-label">☀️ 가장 깨끗한 시간 ({min_hour}시)</div>
             <div class="metric-value" style="color:#2d6a4f;">{min_val:.1f} <span style="font-size:1.1rem; font-weight:normal;">g/kWh</span></div>
             <span style="color:#2d6a4f; font-weight:bold; font-size:0.85rem;">↓ 평균 대비 {abs(min_val - annual_mean):.1f} g 절감</span>
         </div>
@@ -218,8 +207,6 @@ tabs = st.tabs([
 with tabs[0]:
     st.subheader("📈 24시간 시간대별 탄소집약도 곡선")
     st.markdown(f"현재 선택하신 **[{season} / {day_type}]** 조건에서의 24시간 동안 전력 시스템 탄소집약도 변화 추이입니다.")
-    if future_mode:
-        st.info("🔮 **[미래 시나리오 적용 중]** 봄철 재생에너지 발전 비중이 추가 확대된 환경을 가정하여 낮 시간대 탄소집약도 곡선이 더 깊게 하향 조정되었습니다.")
     st.caption("💡 **Tip:** 그래프 위에 마우스를 올리면(Hover) 시간대별 상세 탄소집약도 수치를 정밀하게 확인하실 수 있습니다.")
 
     hours = list(range(24))
@@ -404,7 +391,7 @@ with tabs[1]:
         st.info("월별 격차 데이터(ci_month_gap.csv)를 찾을 수 없습니다.")
 
 # ==========================================
-# [Tab 3] 스마트 이동 시뮬레이터 & 탄소 절감 다이어리
+# [Tab 3] 스마트 이동 시뮬레이터 & 직관적 탄소 절감 다이어리
 # ==========================================
 with tabs[2]:
     st.subheader("⚡ 스마트 전력 이동 시뮬레이터 & 나의 친환경 다이어리")
@@ -479,18 +466,18 @@ with tabs[2]:
             st.markdown(f"<p style='font-size:0.9rem; font-weight:600; color:#2d6a4f; margin-bottom:4px;'>감축 달성 지수 ({progress_val:.1f}%)</p>", unsafe_allow_html=True)
             st.progress(progress_val / 100.0)
 
-            # 📝 [탄소 절감 다이어리 기록 버튼]
+            # 📝 [직관적인 탄소 절감 다이어리 기록 버튼]
             col_btn1, col_btn2 = st.columns([1, 2])
             with col_btn1:
                 if st.button("📝 내 탄소 다이어리에 실천 기록하기"):
                     entry = {
-                        "preset": preset_name if 'preset_name' in locals() else "사용자 가전",
-                        "saved_g": saved_g,
-                        "from_to": f"{from_time}시 ➔ {to_time}시",
-                        "season": sim_season
+                        "품목/활동": preset_name if 'preset_name' in locals() else "사용자 가전",
+                        "시간 이동": f"{from_time}시 ➔ {to_time}시",
+                        "계절": sim_season,
+                        "절감량(g)": round(saved_g, 1)
                     }
                     st.session_state.carbon_diary.append(entry)
-                    st.success("다이어리에 성공적으로 기록되었습니다!")
+                    st.success("다이어리에 실천 내역이 카드 형태로 추가되었습니다!")
         else:
             st.markdown(f"""
                 <div class="custom-card card-warning">
@@ -533,19 +520,30 @@ with tabs[2]:
         best_df = E.best_start(duration=duration, season=sim_season, day_type=sim_day, scenario=scenario)
         st.dataframe(best_df.head(3).round(3), use_container_width=True)
 
-    # --- 실시간 다이어리 기록 리스트 표시 ---
+    # --- 실시간 다이어리 기록 시각화 영역 ---
     st.markdown("---")
-    st.markdown("### 📖 나의 탄소 절감 다이어리 (참여형 기록)")
+    st.markdown("### 📖 나의 친환경 실천 다이어리 (Participation Log)")
+    st.markdown("시뮬레이션에서 검증된 스마트 이동을 내 루틴으로 기록하고, 누적 감축 효과를 한눈에 확인하세요.")
+
     if len(st.session_state.carbon_diary) > 0:
-        total_diary_saved = sum([item["saved_g"] for item in st.session_state.carbon_diary])
-        st.success(f"🎉 지금까지 다이어리에 기록한 총 감축량: **{total_diary_saved:.1f} gCO₂**")
+        total_diary_saved = sum([item["절감량(g)"] for item in st.session_state.carbon_diary])
+        total_pine = (total_diary_saved * 365) / 1000 / 6.6
+
+        col_d_sum1, col_d_sum2 = st.columns(2)
+        col_d_sum1.metric("누적 탄소 감축량 (1회 실천 총합)", f"{total_diary_saved:.1f} gCO₂")
+        col_d_sum2.metric("매일 실천 시 연간 소나무 환산 효과", f"약 {total_pine:.2f} 그루 생태 기여")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("#### 📋 기록된 실천 내역 카드")
+        
         diary_df = pd.DataFrame(st.session_state.carbon_diary)
         st.dataframe(diary_df, use_container_width=True, hide_index=True)
-        if st.button("🗑️ 다이어리 초기화"):
+
+        if st.button("🗑️ 다이어리 전체 초기화하기"):
             st.session_state.carbon_diary = []
             st.rerun()
     else:
-        st.info("💡 위 시뮬레이터에서 스마트 이동을 성공한 뒤 [내 탄소 다이어리에 실천 기록하기] 버튼을 눌러 나만의 실천 내역을 쌓아보세요!")
+        st.info("💡 **다이어리 사용법:** 위 시뮬레이터에서 가전제품과 시간을 설정하고 [이동 효과 시뮬레이션 실행]을 누른 뒤, 성공 결과 아래에 나타나는 **[내 탄소 다이어리에 실천 기록하기]** 버튼을 눌러보세요!")
 
 # ==========================================
 # [Tab 4] 정직한 결과 & 한계
@@ -611,7 +609,7 @@ with tabs[3]:
     """, unsafe_allow_html=True)
 
 # ==========================================
-# [Tab 5] 데이터, 전처리 & 방법론 (상세 고도화)
+# [Tab 5] 데이터, 전처리 & 방법론
 # ==========================================
 with tabs[4]:
     st.subheader("📚 데이터 출처, 전처리 검증 및 방법론 상세")
