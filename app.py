@@ -102,7 +102,7 @@ except Exception as e:
     st.error(f"데이터 엔진 로드 중 오류가 발생했습니다: {e}")
     st.stop()
 
-# --- 세션 스테이트 초기화 (탄소 절감 다이어리 기록 저장소) ---
+# --- 세션 스테이트 초기화 (다이어리 영구 저장소) ---
 if "carbon_diary" not in st.session_state:
     st.session_state.carbon_diary = []
 
@@ -391,7 +391,7 @@ with tabs[1]:
         st.info("월별 격차 데이터(ci_month_gap.csv)를 찾을 수 없습니다.")
 
 # ==========================================
-# [Tab 3] 스마트 이동 시뮬레이터 & 직관적 탄소 절감 다이어리
+# [Tab 3] 스마트 이동 시뮬레이터 & 다이어리 (버그 수정 반영)
 # ==========================================
 with tabs[2]:
     st.subheader("⚡ 스마트 전력 이동 시뮬레이터 & 나의 친환경 다이어리")
@@ -466,18 +466,16 @@ with tabs[2]:
             st.markdown(f"<p style='font-size:0.9rem; font-weight:600; color:#2d6a4f; margin-bottom:4px;'>감축 달성 지수 ({progress_val:.1f}%)</p>", unsafe_allow_html=True)
             st.progress(progress_val / 100.0)
 
-            # 📝 [직관적인 탄소 절감 다이어리 기록 버튼]
-            col_btn1, col_btn2 = st.columns([1, 2])
-            with col_btn1:
-                if st.button("📝 내 탄소 다이어리에 실천 기록하기"):
-                    entry = {
-                        "품목/활동": preset_name if 'preset_name' in locals() else "사용자 가전",
-                        "시간 이동": f"{from_time}시 ➔ {to_time}시",
-                        "계절": sim_season,
-                        "절감량(g)": round(saved_g, 1)
-                    }
-                    st.session_state.carbon_diary.append(entry)
-                    st.success("다이어리에 실천 내역이 카드 형태로 추가되었습니다!")
+            # 📝 [다이어리 기록 버튼 - 즉시 세션 반영형]
+            if st.button("📝 내 탄소 다이어리에 실천 기록하기", key="add_diary_btn"):
+                entry = {
+                    "품목/활동": preset_name,
+                    "시간 이동": f"{from_time}시 ➔ {to_time}시",
+                    "계절": sim_season,
+                    "절감량(g)": round(saved_g, 1)
+                }
+                st.session_state.carbon_diary.append(entry)
+                st.success("✅ 다이어리에 실천 내역이 정상적으로 기록되었습니다! 아래 다이어리 섹션을 확인하세요.")
         else:
             st.markdown(f"""
                 <div class="custom-card card-warning">
@@ -520,7 +518,7 @@ with tabs[2]:
         best_df = E.best_start(duration=duration, season=sim_season, day_type=sim_day, scenario=scenario)
         st.dataframe(best_df.head(3).round(3), use_container_width=True)
 
-    # --- 실시간 다이어리 기록 시각화 영역 ---
+    # --- 실시간 다이어리 기록 시각화 영역 (탭 3 맨 아래 항상 배치) ---
     st.markdown("---")
     st.markdown("### 📖 나의 친환경 실천 다이어리 (Participation Log)")
     st.markdown("시뮬레이션에서 검증된 스마트 이동을 내 루틴으로 기록하고, 누적 감축 효과를 한눈에 확인하세요.")
@@ -530,8 +528,8 @@ with tabs[2]:
         total_pine = (total_diary_saved * 365) / 1000 / 6.6
 
         col_d_sum1, col_d_sum2 = st.columns(2)
-        col_d_sum1.metric("누적 탄소 감축량 (1회 실천 총합)", f"{total_diary_saved:.1f} gCO₂")
-        col_d_sum2.metric("매일 실천 시 연간 소나무 환산 효과", f"약 {total_pine:.2f} 그루 생태 기여")
+        col_d_sum1.metric("누적 탄소 감축량 (실천 총합)", f"{total_diary_saved:.1f} gCO₂")
+        col_d_sum2.metric("매일 실천 시 연간 소나무 환산", f"약 {total_pine:.2f} 그루 생태 기여")
         
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("#### 📋 기록된 실천 내역 카드")
@@ -539,11 +537,11 @@ with tabs[2]:
         diary_df = pd.DataFrame(st.session_state.carbon_diary)
         st.dataframe(diary_df, use_container_width=True, hide_index=True)
 
-        if st.button("🗑️ 다이어리 전체 초기화하기"):
+        if st.button("🗑️ 다이어리 전체 초기화하기", key="clear_diary_btn"):
             st.session_state.carbon_diary = []
             st.rerun()
     else:
-        st.info("💡 **다이어리 사용법:** 위 시뮬레이터에서 가전제품과 시간을 설정하고 [이동 효과 시뮬레이션 실행]을 누른 뒤, 성공 결과 아래에 나타나는 **[내 탄소 다이어리에 실천 기록하기]** 버튼을 눌러보세요!")
+        st.info("💡 **다이어리 사용법:** 위 시뮬레이터에서 가전제품과 시간을 설정하고 [이동 효과 시뮬레이션 실행]을 누른 뒤, 성공 결과 아래에 나타나는 **[📝 내 탄소 다이어리에 실천 기록하기]** 버튼을 눌러보세요!")
 
 # ==========================================
 # [Tab 4] 정직한 결과 & 한계
