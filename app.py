@@ -191,11 +191,6 @@ with c3:
             <span style="color:#d62728; font-weight:bold; font-size:0.85rem;">↑ 평균 대비 {abs(max_val - annual_mean):.1f} g 과다</span>
         </div>
     """, unsafe_allow_html=True)
-import streamlit as st
-
-import streamlit as st
-
-import streamlit as st
 
 # --- 용어 정리 접이식 박스 (Expander) ---
 with st.expander("📖 [클릭] 연구 핵심 용어 및 배출계수 완벽 정리"):
@@ -206,11 +201,9 @@ with st.expander("📖 [클릭] 연구 핵심 용어 및 배출계수 완벽 정
 
     ### 2. IPCC 전과정 평가 (LCA, Life Cycle Assessment) 기준 *(기본값)*
     * **정의**: 연료의 연소 시 직접 배출뿐만 아니라, **연료 채굴, 운송, 발전소 건설 및 폐기**까지 전 생애주기에서 발생하는 간접 배출까지 모두 합산한 국제 공인(IPCC AR5) 기준입니다.
-    * **특징**: 태양광이나 원자력도 패널 제조 및 시설 건설 과정의 간접 배출이 포함되어 0이 아닌 고유 계수(태양광 약 48g, 원자력 약 12g)를 가집니다.
 
     ### 3. 직접배출 (Direct Emission) 기준
     * **정의**: 발전소가 가동되거나 연료가 연소될 때 **굴뚝이나 배기구에서 실시간으로 나오는 온실가스만** 측정한 값입니다.
-    * **특징**: 굴뚝 연기가 없는 태양광, 풍력, 원자력은 직접배출 계수가 0 g/kWh로 계산됩니다.
 
     ### 4. 탄소집약도 (Carbon Intensity, gCO₂eq/kWh)
     * **정의**: 전력 1kWh를 생산할 때 공기 중에 배출되는 온실가스의 총량입니다. 낮 시간(태양광 풍부)에는 낮고, 저녁 피크(화석연료 가동)에는 높아집니다.
@@ -418,13 +411,13 @@ with tabs[1]:
         st.info("월별 격차 데이터(ci_month_gap.csv)를 찾을 수 없습니다.")
 
 # ==========================================
-# [Tab 3] 스마트 이동 시뮬레이터 & 다이어리 (세션 저장 폼 구조 적용)
+# [Tab 3] 스마트 이동 시뮬레이터 & 다이어리 (제품 변경 시 슬라이더 값 실시간 연동 완료)
 # ==========================================
 with tabs[2]:
     st.subheader("⚡ 스마트 전력 이동 시뮬레이터 & 나의 친환경 다이어리")
     st.markdown("가정이나 교실에서 사용하는 가전제품의 작동 시간을 피크 타임에서 깨끗한 낮 시간대로 옮겼을 때의 감축 효과를 시뮬레이션하고, 내 실천을 기록합니다.")
 
-    # 실시간 다이어리 영역을 아예 상단에 먼저 배치하여 기록이 언제든 눈에 띄게 함
+    # 실시간 다이어리 영역 상단 배치
     st.markdown("### 📖 나의 친환경 실천 다이어리 (Participation Log)")
     if len(st.session_state.carbon_diary) > 0:
         total_diary_saved = sum([item["절감량(g)"] for item in st.session_state.carbon_diary])
@@ -454,14 +447,34 @@ with tabs[2]:
         presets_path = CLEAN_DIR / "activity_presets.csv"
         kwh = 1.0
         preset_name = "일반 가전활동"
+
         if input_mode == "가전 프리셋 선택" and presets_path.exists():
             p_df = pd.read_csv(presets_path)
-            preset_choice = st.selectbox("가전제품 선택", p_df["category"].tolist(), key="sim_preset_choice")
-            row_p = p_df[p_df["category"] == preset_choice].iloc[0]
-            preset_name = row_p["category"]
-            default_kwh = row_p["co2_median"] / 414.9
-            kwh = st.slider("전력량 (kWh) [상대 추정]", 0.1, 10.0, float(round(default_kwh, 2)), 0.1, key="sim_kwh_slider")
-            st.caption(f"📌 선택 품목: **{preset_name}** | 기준 전력량 환산: {kwh:.2f} kWh")
+            preset_options = p_df["category"].tolist() if "category" in p_df.columns else p_df.iloc[:, 0].tolist()
+            
+            # 콜백 함수: 제품을 바꿀 때마다 해당 제품의 환산 전력량이 슬라이더 state에 즉시 반영되도록 함
+            def update_slider_val():
+                chosen = st.session_state.sim_preset_choice
+                row_sel = p_df[p_df["category"] == chosen].iloc[0] if "category" in p_df.columns else p_df.iloc[0]
+                r_co2 = float(row_sel.get("co2_median", 40.0))
+                def_k = round(r_co2 / 414.9, 2)
+                if def_k < 0.1: def_k = 0.1
+                st.session_state.dynamic_kwh_slider = float(def_k)
+
+            preset_choice = st.selectbox("가전제품 선택", options=preset_options, key="sim_preset_choice", on_change=update_slider_val)
+            
+            row_p = p_df[p_df["category"] == preset_choice].iloc[0] if "category" in p_df.columns else p_df.iloc[0]
+            preset_name = str(row_p.get("category", "세탁기"))
+            raw_co2 = float(row_p.get("co2_median", 40.0))
+            default_kwh = round(raw_co2 / 414.9, 2)
+            if default_kwh < 0.1: 
+                default_kwh = 0.1
+
+            if "dynamic_kwh_slider" not in st.session_state:
+                st.session_state.dynamic_kwh_slider = float(default_kwh)
+
+            kwh = st.slider("전력량 (kWh) [기준 값 기반 조정]", 0.1, 10.0, key="dynamic_kwh_slider", step=0.1)
+            st.caption(f"📌 선택 품목: **{preset_name}** | 데이터 환산 기본값: **{default_kwh} kWh** (CO₂ 중앙값: {raw_co2}g)")
         else:
             kwh = st.number_input("전력량 (kWh)", min_value=0.1, max_value=100.0, value=1.5, step=0.1, key="sim_kwh_num")
 
@@ -484,7 +497,7 @@ with tabs[2]:
             saved_g = r.get('saved_g', 0)
             saved_rate = r.get('saved_rate', 0)
 
-            # 감축 성공 시 세션에 자동 누적 기록
+            # 감축 성공 시 세션에 자동 누적 기록, 증가 시 붉은 경고 메시지 처리
             if saved_g >= 0:
                 entry = {
                     "품목/활동": preset_name,
@@ -495,7 +508,7 @@ with tabs[2]:
                 st.session_state.carbon_diary.append(entry)
                 st.success(f"🌱 [시뮬레이션 성공] {saved_g:.1f} g 감축 효과가 입증되어 **다이어리에 자동으로 기록**되었습니다!")
             else:
-                st.warning(f"⚠️ [주의] 해당 시간 이동은 탄소 배출량이 오히려 증가({abs(saved_g):.1f} g)하므로 다이어리에 기록되지 않습니다.")
+                st.error(f"⚠️ [경고] 해당 시간 이동은 오히려 탄소 배출량이 증가({abs(saved_g):.1f} g)하므로 다이어리에 기록되지 않습니다.")
 
             st.markdown("---")
             st.markdown("### 🎯 이번 실행 결과 리포트")
@@ -619,7 +632,7 @@ with tabs[4]:
         </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### 📐 2.핵심 산식 및 3분모 기준 정의")
+    st.markdown("### 📐 2. 핵심 산식 및 3분모 기준 정의")
     st.markdown("""
         - **시간별 탄소집약도 공식**: 
           $$\\text{CI}_h = \\frac{\\sum (M_{i,h} \\times E_i)}{\\text{Total MWh}_h}$$ 
