@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. 커스텀 CSS (구문 오류 완전 정돈)
+# 2. 커스텀 CSS (구문 오류 정돈)
 st.markdown("""
     <style>
     .main { 
@@ -193,18 +193,11 @@ with st.expander("📖 [클릭] 연구 핵심 용어 및 배출계수 완벽 정
     st.markdown("""
     ### 1. 배출계수 (Emission Factor)
     * **정의**: 특정 활동이나 연료 사용 1단위당 발생하는 온실가스(CO₂eq)의 양을 나타내는 표준 환산 계수입니다.
-    * **공식**: **총 배출량 = 활동량(사용량) × 배출계수**
-
     ### 2. IPCC 전과정 평가 (LCA) 기준 *(기본값)*
     * **정의**: 연료의 연소 시 직접 배출뿐만 아니라 채굴, 운송, 발전소 건설까지 전 생애주기의 간접 배출을 모두 합산한 기준입니다.
-
-    ### 3. 직접배출 기준
-    * **정의**: 발전소가 가동될 때 굴뚝이나 배기구에서 실시간으로 나오는 온실가스만 측정한 값입니다.
-
-    ### 4. 탄소집약도 (Carbon Intensity, gCO₂eq/kWh)
+    ### 3. 탄소집약도 (Carbon Intensity, gCO₂eq/kWh)
     * **정의**: 전력 1kWh를 생산할 때 공기 중에 배출되는 온실가스의 총량입니다.
-
-    ### 5. 타임 시프팅 (Time Shifting)
+    ### 4. 타임 시프팅 (Time Shifting)
     * **정의**: 전력 사용량 자체를 줄이는 '절전'과 달리 쓰는 **시간대**를 탄소 배출이 적은 시간으로 옮기는 행위입니다.
     """)
     
@@ -251,10 +244,12 @@ with tabs[1]:
     fig_hist = px.histogram(x=dd_s, nbins=30, title="365일 일별 이동 감축률 분포 및 중앙값 분석")
     st.plotly_chart(fig_hist, use_container_width=True)
 
-# [Tab 3] 스마트 이동 시뮬레이터 & 다이어리
+# ==========================================
+# [Tab 3] 스마트 이동 시뮬레이터 & 다이어리 (수집 데이터 환산 전력량 기준 연동)
+# ==========================================
 with tabs[2]:
     st.subheader("⚡ 스마트 전력 이동 시뮬레이터 & 나의 친환경 다이어리")
-    st.markdown("수집된 데이터(활동 프리셋)의 기준 값을 바탕으로 가전제품별 전력량을 고정·로드한 뒤, 슬라이더를 통해 정밀하게 조정합니다.")
+    st.markdown("수집된 데이터(활동 프리셋)의 CO₂ 중앙값을 바탕으로 환산된 **기준 전력량(kWh)**을 기본값으로 로드하며, 슬라이더로 자유롭게 조정할 수 있습니다.")
 
     st.markdown("### 📖 나의 친환경 실천 다이어리 (Participation Log)")
     if len(st.session_state.carbon_diary) > 0:
@@ -283,7 +278,7 @@ with tabs[2]:
 
         presets_path = CLEAN_DIR / "activity_presets.csv"
         kwh = 1.0
-        preset_name = "세탁기 (표준 1회)"
+        preset_name = "전기세탁기(일반)"
 
         if input_mode == "수집 데이터(프리셋) 기준 선택" and presets_path.exists():
             p_df = pd.read_csv(presets_path)
@@ -293,13 +288,15 @@ with tabs[2]:
             row_p = p_df[p_df["category"] == preset_choice].iloc[0] if "category" in p_df.columns else p_df.iloc[0]
             preset_name = str(row_p.get("category", "세탁기"))
             
-            raw_val = float(row_p.get("co2_median", 414.9))
-            default_kwh = round(raw_val / 414.9, 2)
-            if default_kwh <= 0: 
-                default_kwh = 1.0
+            # 수집 데이터의 co2_median 값을 연간 평균 탄소집약도(약 414.9 g/kWh)로 나누어 실제 환산 전력량 도출
+            raw_co2 = float(row_p.get("co2_median", 40.0))
+            default_kwh = round(raw_co2 / 414.9, 2)
+            if default_kwh < 0.1: 
+                default_kwh = 0.1
 
-            kwh = st.slider("전력량 (kWh) [수집 기준 값 조정]", 0.1, 10.0, float(default_kwh), 0.1, key="sim_kwh_slider")
-            st.caption(f"📌 수집 기준 품목: **{preset_name}** (기본 환산 전력량: {kwh} kWh)")
+            # 슬라이더를 통해 사용자가 환산 기준 전력량을 자유롭게 조절 가능
+            kwh = st.slider("전력량 (kWh) [기준 값 기반 조정]", 0.1, 10.0, float(default_kwh), 0.1, key="sim_kwh_slider")
+            st.caption(f"📌 수집 기준 품목: **{preset_name}** (데이터 환산 기본값: **{default_kwh} kWh**, CO₂ 중앙값: {raw_co2}g)")
         else:
             kwh = st.number_input("전력량 (kWh)", min_value=0.1, max_value=100.0, value=1.0, step=0.1, key="sim_kwh_num")
 
