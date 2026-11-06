@@ -14,8 +14,14 @@ st.set_page_config(
 # 2. 커스텀 CSS
 st.markdown("""
     <style>
-    .main { background-color: #F8FAF8; }
-    .title-header { color: #1b4332; font-weight: 800; margin-bottom: 5px; }
+    .main { 
+        background-color: #F8FAF8; 
+    }
+    .title-header { 
+        color: #1b4332; 
+        font-weight: 800; 
+        margin-bottom: 5px; 
+    }
     .custom-card {
         background-color: #ffffff;
         padding: 24px;
@@ -34,14 +40,35 @@ st.markdown("""
         color: #1b4332;
         line-height: 1.6;
     }
-    .badge-container { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-    .badge-item {
-        background-color: #e9f5ed; color: #2d6a4f; padding: 4px 12px;
-        border-radius: 20px; font-size: 0.85rem; font-weight: 600; border: 1px solid #d8ebd9;
+    .badge-container { 
+        display: flex; 
+        gap: 10px; 
+        margin-bottom: 15px; 
+        flex-wrap: wrap; 
     }
-    .metric-value { font-size: 1.8rem; font-weight: 700; color: #1b4332; }
-    .metric-label { font-size: 0.9rem; color: #52b788; font-weight: 600; }
-    [data-testid="stSidebar"] { background-color: #F0F7F2; border-right: 1px solid #d8ebd9; }
+    .badge-item {
+        background-color: #e9f5ed; 
+        color: #2d6a4f; 
+        padding: 4px 12px;
+        border-radius: 20px; 
+        font-size: 0.85rem; 
+        font-weight: 600; 
+        border: 1px solid #d8ebd9;
+    }
+    .metric-value { 
+        font-size: 1.8rem; 
+        font-weight: 700; 
+        color: #1b4332; 
+    }
+    .metric-label { 
+        font-size: 0.9rem; 
+        color: #52b788; 
+        font-weight: 600; 
+    }
+    [data-testid="stSidebar"] { 
+        background-color: #F0F7F2; 
+        border-right: 1px solid #d8ebd9; 
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -136,26 +163,83 @@ tabs = st.tabs([
     "📚 데이터, 전처리 & 방법론"
 ])
 
-# [Tab 1]
+# ==========================================
+# [Tab 1] 탄소 곡선 & 발전원 시각화
+# ==========================================
 with tabs[0]:
     st.subheader("📈 24시간 시간대별 탄소집약도 곡선")
+    st.markdown(f"현재 선택하신 **[{season} / {day_type}]** 조건에서의 24시간 동안 전력 시스템 탄소집약도 변화 추이입니다.")
+
     hours = list(range(24))
     ci_values = [h_ci.get(h, annual_mean) for h in hours]
-    fig_curve = px.line(x=hours, y=ci_values, markers=True, title="시간대별 탄소집약도 추이")
+
+    fig_curve = px.line(
+        x=hours, y=ci_values,
+        labels={"x": "시각 (Hour)", "y": "탄소집약도 (g/kWh)"},
+        markers=True,
+        title=f"[{season} / {day_type}] 시간대별 탄소집약도 추이"
+    )
+    fig_curve.update_traces(line_color="#2d6a4f", line_width=3, marker_size=8)
+    fig_curve.update_layout(
+        plot_bgcolor="#ffffff", paper_bgcolor="#ffffff",
+        xaxis=dict(tickmode='linear', dtick=1, gridcolor="#f0f0f0"),
+        yaxis=dict(gridcolor="#f0f0f0")
+    )
     st.plotly_chart(fig_curve, use_container_width=True)
 
-# [Tab 2]
+    st.markdown("---")
+    st.subheader("☀️ 전력원별 발전량 구성 분석")
+    mix_path = CLEAN_DIR / "fuel_hour_mix.csv"
+    if mix_path.exists():
+        mix_df = pd.read_csv(mix_path)
+        sub_mix = mix_df[(mix_df.season == season) & (mix_df.day_type == day_type)]
+        if sub_mix.empty:
+            sub_mix = mix_df[(mix_df.season == "전체") & (mix_df.day_type == "전체")]
+
+        fig_mix = px.bar(
+            sub_mix, x="hour", y="mwh_mean", color="group",
+            labels={"hour": "시각 (Hour)", "mwh_mean": "평균 발전량 (MW)", "group": "전력원"},
+            title=f"[{season} / {day_type}] 시간대별 전력원별 평균 발전량 구성",
+            color_discrete_sequence=px.colors.qualitative.Prism
+        )
+        fig_mix.update_layout(barmode="stack", plot_bgcolor="#ffffff", paper_bgcolor="#ffffff")
+        st.plotly_chart(fig_mix, use_container_width=True)
+
+# ==========================================
+# [Tab 2] 연중 히트맵 & 분포 시각화
+# ==========================================
 with tabs[1]:
     st.subheader("🗺️ 월별 × 시간대 탄소집약도 히트맵")
     month_hour_path = CLEAN_DIR / "ci_month_hour.csv"
     if month_hour_path.exists():
         mh_df = pd.read_csv(month_hour_path)
         mh_pivot = mh_df.pivot(index="month", columns="hour", values="ci_mid")
-        fig_hm = px.imshow(mh_pivot, color_continuous_scale="Viridis", title="월별-시간대별 평균 탄소집약도 히트맵")
+        fig_hm = px.imshow(
+            mh_pivot,
+            labels=dict(x="시각 (Hour)", y="월 (Month)", color="g/kWh"),
+            x=mh_pivot.columns, y=mh_pivot.index,
+            color_continuous_scale="Viridis",
+            title="월별-시간대별 평균 탄소집약도 히트맵"
+        )
+        fig_hm.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
         st.plotly_chart(fig_hm, use_container_width=True)
 
+    st.markdown("---")
+    st.subheader("📊 날짜별 이동 감축률 분포 (365일)")
+    dd_s = E.daily_distribution()
+    median_val = dd_s.median()
+
+    fig_hist = px.histogram(
+        x=dd_s, nbins=30,
+        labels={"x": "이동 감축률 (%)", "count": "일수 (Days)"},
+        title="365일 일별 이동 감축률 분포 및 중앙값 분석"
+    )
+    fig_hist.update_traces(marker_color="#2d6a4f", opacity=0.85)
+    fig_hist.add_vline(x=median_val, line_dash="dash", line_color="#d62728", annotation_text=f"중앙값: {median_val:.1f}%")
+    st.plotly_chart(fig_hist, use_container_width=True)
+
 # ==========================================
-# [Tab 3] 스마트 이동 시뮬레이터 & 다이어리 (제품 변경 시 슬라이더 값 실시간 연동)
+# [Tab 3] 스마트 이동 시뮬레이터 & 다이어리 (슬라이더 연동 완료)
 # ==========================================
 with tabs[2]:
     st.subheader("⚡ 스마트 전력 이동 시뮬레이터 & 나의 친환경 다이어리")
@@ -193,7 +277,6 @@ with tabs[2]:
             p_df = pd.read_csv(presets_path)
             preset_options = p_df["category"].tolist() if "category" in p_df.columns else p_df.iloc[:, 0].tolist()
             
-            # 콜백 함수 정의: 셀렉트박스에서 제품을 바꿀 때마다 해당 제품의 기본 환산 전력량을 슬라이더 state에 강제 갱신
             def update_slider_val():
                 chosen = st.session_state.sim_preset_choice
                 row_sel = p_df[p_df["category"] == chosen].iloc[0] if "category" in p_df.columns else p_df.iloc[0]
@@ -202,10 +285,8 @@ with tabs[2]:
                 if def_k < 0.1: def_k = 0.1
                 st.session_state.dynamic_kwh_slider = float(def_k)
 
-            # 최초 실행 시 또는 셀렉트박스 변경 시 연동
             preset_choice = st.selectbox("수집된 가전제품/활동 선택", options=preset_options, key="sim_preset_choice", on_change=update_slider_val)
             
-            # 현재 선택된 행의 데이터 추출
             row_p = p_df[p_df["category"] == preset_choice].iloc[0] if "category" in p_df.columns else p_df.iloc[0]
             preset_name = str(row_p.get("category", "세탁기"))
             raw_co2 = float(row_p.get("co2_median", 40.0))
@@ -213,11 +294,9 @@ with tabs[2]:
             if default_kwh < 0.1: 
                 default_kwh = 0.1
 
-            # session_state에 값이 없다면 초기값 세팅
             if "dynamic_kwh_slider" not in st.session_state:
                 st.session_state.dynamic_kwh_slider = float(default_kwh)
 
-            # 슬라이더에 key와 st.session_state 연동
             kwh = st.slider("전력량 (kWh) [기준 값 기반 조정]", 0.1, 10.0, key="dynamic_kwh_slider", step=0.1)
             st.caption(f"📌 수집 기준 품목: **{preset_name}** (데이터 환산 기본값: **{default_kwh} kWh**, CO₂ 중앙값: {raw_co2}g)")
         else:
@@ -279,7 +358,7 @@ with tabs[2]:
             st.markdown("#### 🔬 계수 세트별 비교 (불확실성 분석)")
             st.dataframe(band.round(3), use_container_width=True)
 
-# [Tab 4]
+# [Tab 4] 정직한 결과 & 한계
 with tabs[3]:
     st.markdown("### 📊 정직한 결과: 왜 국가 단위 감축률은 작아 보일까요?")
     denoms = E.denominators(p=0.1, season=season_arg, day_type=day_arg)
@@ -288,7 +367,7 @@ with tabs[3]:
     col_d2.metric("기준 ② 저녁 총사용량", f"{denoms['evening_rate']*100:.1f}%")
     col_d3.metric("기준 ③ 시장 전체 일일", f"{denoms['daily_rate_market']*100:.2f}%")
 
-# [Tab 5]
+# [Tab 5] 데이터, 전처리 & 방법론
 with tabs[4]:
     st.subheader("📚 데이터 출처 및 방법론")
     st.markdown("KPX 전수 데이터 및 음수 데이터 정제(Clamping) 완료.")
