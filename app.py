@@ -534,7 +534,7 @@ with tabs[2]:
             m3.metric("이동 후 배출량", f"{emission_after:.1f} g")
             # 파트 5 대본 논리에 맞춘 '10% 절약(Reduction) 시 감축 효과' 비교 메트릭
             reduction_ref = emission_before * 0.10
-            m4.metric("💡 10% 절약 시 감축 효과", f"{reduction_ref:.1f} g", delta="절약이 언제나 우위", delta_value_color="inverse")
+            m4.metric("💡 10% 절약 시 감축 효과", f"{reduction_ref:.1f} g", delta="절약이 언제나 우위", delta_color="inverse")
 
             if saved_g > 0:
                 annual_saved_kg = (saved_g * 365) / 1000
