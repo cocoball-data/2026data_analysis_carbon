@@ -193,11 +193,13 @@ with c3:
     """, unsafe_allow_html=True)
 import streamlit as st
 
+import streamlit as st
+
 # --- 용어 정리 접이식 박스 (Expander) ---
 with st.expander("📖 [클릭] 연구 핵심 용어 및 배출계수 완벽 정리"):
     st.markdown("""
     ### 1. 배출계수 (Emission Factor)
-    * **정의**: 특정 활동이나 연료 사용 1단위당 발생하는 온실가스(CO₂eq)의 양을 나타내는 표준 환산 계수입니다.
+    * **정의**: 특정 활동이나 연료 사용 1단위당 발생하는 온실가스($\text{CO}_2\text{eq}$)의 양을 나타내는 표준 환산 계수입니다.
     * **공식**: $\text{총 배출량} = \text{활동량(사용량)} \times \text{배출계수}$
 
     ### 2. IPCC 전과정 평가 (LCA, Life Cycle Assessment) 기준 *(기본값)*
