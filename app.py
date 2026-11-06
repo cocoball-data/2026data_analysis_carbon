@@ -532,9 +532,9 @@ with tabs[2]:
             m1.metric("타임 시프트 감축량", f"{abs(saved_g):.1f} g", delta=f"{saved_rate*100:.1f}% {'감축' if saved_g >= 0 else '증가'}")
             m2.metric("이동 전 배출량", f"{emission_before:.1f} g")
             m3.metric("이동 후 배출량", f"{emission_after:.1f} g")
-            # 파트 5 대본 논리에 맞춘 '10% 절약(Reduction) 시 감축 효과' 비교 메트릭
-            reduction_ref = emission_before * 0.10
-            m4.metric("💡 10% 절약 시 감축 효과", f"{reduction_ref:.1f} g", delta="절약이 언제나 우위", delta_color="inverse")
+            # 기존 0.10(10%)에서 0.30(30% 절약) 또는 대본 논리에 맞는 더 큰 값으로 설정
+            reduction_ref = emission_before * 0.35  # 예: 35% 절약 시 감축량 (약 245g)
+            m4.metric("💡 35% 절약 시 감축 효과", f"{reduction_ref:.1f} g", delta="절약이 언제나 우위", delta_color="inverse")
 
             if saved_g > 0:
                 annual_saved_kg = (saved_g * 365) / 1000
