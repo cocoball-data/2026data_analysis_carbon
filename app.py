@@ -164,7 +164,7 @@ annual_mean = h_ci.mean()
 min_hour, min_val = int(h_ci.idxmin()), h_ci.min()
 max_hour, max_val = int(h_ci.idxmax()), h_ci.max()
 
-# 대시보드 상단 미감 개선 카드 3종
+# 대시보드 상단 카드 3종
 c1, c2, c3 = st.columns(3)
 with c1:
     st.markdown(f"""
@@ -191,11 +191,6 @@ with c3:
             <span style="color:#d62728; font-weight:bold; font-size:0.85rem;">↑ 평균 대비 {abs(max_val - annual_mean):.1f} g 과다</span>
         </div>
     """, unsafe_allow_html=True)
-import streamlit as st
-
-import streamlit as st
-
-import streamlit as st
 
 # --- 용어 정리 접이식 박스 (Expander) ---
 with st.expander("📖 [클릭] 연구 핵심 용어 및 배출계수 완벽 정리"):
@@ -418,13 +413,13 @@ with tabs[1]:
         st.info("월별 격차 데이터(ci_month_gap.csv)를 찾을 수 없습니다.")
 
 # ==========================================
-# [Tab 3] 스마트 이동 시뮬레이터 & 다이어리 (세션 저장 폼 구조 적용)
+# [Tab 3] 스마트 이동 시뮬레이터 & 다이어리 (가전별 전력량 완벽 고정 반영)
 # ==========================================
 with tabs[2]:
     st.subheader("⚡ 스마트 전력 이동 시뮬레이터 & 나의 친환경 다이어리")
     st.markdown("가정이나 교실에서 사용하는 가전제품의 작동 시간을 피크 타임에서 깨끗한 낮 시간대로 옮겼을 때의 감축 효과를 시뮬레이션하고, 내 실천을 기록합니다.")
 
-    # 실시간 다이어리 영역을 아예 상단에 먼저 배치하여 기록이 언제든 눈에 띄게 함
+    # 실시간 다이어리 영역 상단 배치
     st.markdown("### 📖 나의 친환경 실천 다이어리 (Participation Log)")
     if len(st.session_state.carbon_diary) > 0:
         total_diary_saved = sum([item["절감량(g)"] for item in st.session_state.carbon_diary])
@@ -441,7 +436,7 @@ with tabs[2]:
             st.session_state.carbon_diary = []
             st.rerun()
     else:
-        st.info("💡 아래 시뮬레이터에서 이동 효과를 실행한 뒤 **[📝 내 탄소 다이어리에 실천 기록하기]**를 누르면 이곳에 누적 기록이 쌓입니다.")
+        st.info("💡 아래 시뮬레이터에서 이동 효과를 실행한 뒤 다이어리 기록이 자동으로 누적됩니다.")
 
     st.markdown("---")
     st.markdown("### 🎛️ 시뮬레이터 설정 및 실행")
@@ -451,19 +446,26 @@ with tabs[2]:
     with col_in1:
         input_mode = st.radio("전력량 입력 방식", ["가전 프리셋 선택", "직접 입력 (kWh)"], key="sim_input_mode")
 
-        presets_path = CLEAN_DIR / "activity_presets.csv"
+        # [수정] 0.1 kWh 고정 문제 해결을 위한 명확한 표준 소비전력량 맵핑 딕셔너리
+        APPLIANCE_POWER_KWH = {
+            "세탁기 (표준 1회)": 1.0,
+            "의류건조기 (1회)": 2.1,
+            "식기세척기 (1회)": 1.2,
+            "전기밥솥 (취사 1회)": 0.5,
+            "에어프라이어 (30분)": 0.9,
+            "로봇청소기/소형기기 충전": 0.1
+        }
+
         kwh = 1.0
-        preset_name = "일반 가전활동"
-        if input_mode == "가전 프리셋 선택" and presets_path.exists():
-            p_df = pd.read_csv(presets_path)
-            preset_choice = st.selectbox("가전제품 선택", p_df["category"].tolist(), key="sim_preset_choice")
-            row_p = p_df[p_df["category"] == preset_choice].iloc[0]
-            preset_name = row_p["category"]
-            default_kwh = row_p["co2_median"] / 414.9
-            kwh = st.slider("전력량 (kWh) [상대 추정]", 0.1, 10.0, float(round(default_kwh, 2)), 0.1, key="sim_kwh_slider")
-            st.caption(f"📌 선택 품목: **{preset_name}** | 기준 전력량 환산: {kwh:.2f} kWh")
+        preset_name = "세탁기 (표준 1회)"
+
+        if input_mode == "가전 프리셋 선택":
+            preset_choice = st.selectbox("가전제품 선택", options=list(APPLIANCE_POWER_KWH.keys()), key="sim_preset_choice")
+            preset_name = preset_choice
+            kwh = APPLIANCE_POWER_KWH[preset_choice] # 정확한 가전별 전력량 매핑 반영
+            st.caption(f"📌 선택 품목: **{preset_name}** | 표준 적용 전력량: **{kwh} kWh**")
         else:
-            kwh = st.number_input("전력량 (kWh)", min_value=0.1, max_value=100.0, value=1.5, step=0.1, key="sim_kwh_num")
+            kwh = st.number_input("전력량 (kWh)", min_value=0.1, max_value=100.0, value=1.0, step=0.1, key="sim_kwh_num")
 
         from_time = st.slider("원래 시작 시각 (From)", 0, 23, 19, key="sim_from_slider")
         duration = st.slider("활동 지속 시간 (시간)", 1, 6, 2, key="sim_duration_slider")
@@ -619,7 +621,7 @@ with tabs[4]:
         </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### 📐 2.핵심 산식 및 3분모 기준 정의")
+    st.markdown("### 📐 2. 핵심 산식 및 3분모 기준 정의")
     st.markdown("""
         - **시간별 탄소집약도 공식**: 
           $$\\text{CI}_h = \\frac{\\sum (M_{i,h} \\times E_i)}{\\text{Total MWh}_h}$$ 
